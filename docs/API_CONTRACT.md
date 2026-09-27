@@ -122,12 +122,12 @@ Seluruh endpoint backend menggunakan basis URL `/api/v1` dan mengembalikan respo
 * `GET /api/v1/lhp/:lhpId/temuan`
   * Menampilkan seluruh temuan dari sebuah LHP terurut berdasarkan `nomor_temuan`.
 * `POST /api/v1/lhp/:lhpId/temuan` (ADMIN_IRBAN, SUPER_ADMIN)
-  * Body: `{ "judul": "...", "uraian": "...", "nilai_rekomendasi": 15000000.00 (opsional) }`
+  * Body: `{ "judul": "...", "uraian": "...", "nilai_temuan": 15000000.00 (opsional) }`
   * Penomoran urut otomatis (`nomor_temuan` 1..n). Ditolak jika LHP sudah ditutup.
 * `GET /api/v1/temuan/:id`
   * Menampilkan detail temuan berserta daftar rekomendasi dan parent LHP. Terikat proteksi scope Irban.
 * `PATCH /api/v1/temuan/:id` (ADMIN_IRBAN pemilik / SUPER_ADMIN)
-  * Update judul, uraian, atau nilai rekomendasi.
+  * Update judul, uraian, atau nilai temuan.
 * `DELETE /api/v1/temuan/:id` (ADMIN_IRBAN pemilik / SUPER_ADMIN)
   * Menghapus temuan beserta relasi anak cascade jika LHP belum ditutup.
 
@@ -148,7 +148,7 @@ Seluruh endpoint backend menggunakan basis URL `/api/v1` dan mengembalikan respo
 * `GET /api/v1/rekomendasi/:rekomendasiId/tindak-lanjut`
   * Menampilkan riwayat iterasi tindak lanjut (non-destructive log) berserta lampiran dan hasil verifikasi.
 * `POST /api/v1/rekomendasi/:rekomendasiId/tindak-lanjut` (ADMIN_IRBAN, SUPER_ADMIN)
-  * Form-Data / JSON: `{ "tanggal_diterima": "YYYY-MM-DD", "uraian": "...", "nilai_setor": 5000000.00 (opsional), "files": [berkas bukti] (opsional) }`
+  * Form-Data / JSON: `{ "tanggal_diterima": "YYYY-MM-DD", "uraian": "...", "nilai_tindak_lanjut": 5000000.00 (opsional), "files": [berkas bukti] (opsional) }`
   * Menginput tindak lanjut dokumen yang diserahkan OPD melalui Admin Irban.
 * `GET /api/v1/rekomendasi/:rekomendasiId/tindak-lanjut/financial-summary`
   * Menghitung total nilai rekomendasi, akumulasi nilai setor, sisa kewajiban, dan persentase pengembalian.
