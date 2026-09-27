@@ -1,9 +1,18 @@
 # SESSION_HANDOFF
 
 ## Active checkpoint
-F01 - Bootstrap Frontend (Completed) -> Next: F02 - Auth Client & Refresh Wrapper
+F02 - Auth Client & Refresh Wrapper (Completed) -> Next: F03 - App Shell & Role Routes
 
 ## Completed in this session
+- **Checkpoint F02 (Auth Client & Refresh Wrapper)**:
+  - Menambahkan typed fetch client yang selalu memakai `credentials: "include"`, menormalisasi error backend, dan hanya menerima path API internal.
+  - Implementasi single-flight refresh: request paralel yang menerima `401` berbagi satu request `/auth/refresh`, lalu masing-masing mengulang request awal tepat satu kali.
+  - Login/logout menonaktifkan auto-refresh agar kredensial salah atau logout tidak memicu refresh loop.
+  - Menambahkan typed auth API, model role/user, TanStack Query `/auth/me`, serta mutation login/logout tanpa penyimpanan JWT di localStorage, sessionStorage, atau Zustand.
+  - Menambahkan halaman login responsif dengan field NIP/username dan password EGOV, pesan error aman, serta pembersihan state password setelah submit.
+  - Menambahkan validasi redirect internal untuk menolak external URL, protocol-relative URL, backslash, control character, dan loop kembali ke `/login`.
+  - Halaman utama kini membaca status sesi dan menampilkan tombol masuk atau identitas pengguna/logout.
+
 - **Checkpoint F01 (Bootstrap Frontend)**:
   - Mempertahankan frontend existing dan memakai versi aktual repo: Next.js 16 App Router, React 19, TypeScript strict, dan Tailwind CSS 4.
   - Menambahkan `QueryClientProvider` dengan default query/mutation yang konservatif serta toast host global melalui `sonner`.
@@ -175,6 +184,13 @@ F01 - Bootstrap Frontend (Completed) -> Next: F02 - Auth Client & Refresh Wrappe
   - Unit tests lulus (`lhp.service.spec.ts`).
 
 ## Files changed
+- `frontend/lib/api-client.ts`: Fetch wrapper cookie-based, typed error, one-time retry, dan single-flight refresh.
+- `frontend/features/auth/`: API auth, type user/role, hooks TanStack Query, login form, session actions, dan safe redirect.
+- `frontend/app/login/page.tsx`: Halaman login SIPATUH.
+- `frontend/app/page.tsx`: Status sesi dan aksi login/logout pada landing page.
+- `frontend/tests/`: Unit test credentials, refresh/retry concurrency, loop prevention, dan redirect safety.
+- `frontend/package.json` & `frontend/package-lock.json`: Script test dan dependency dev `tsx`; audit dependency 0 vulnerability.
+- `docs/API_CONTRACT.md`: Memperjelas envelope response auth dan aturan konsumsi frontend.
 - `frontend/package.json` & `frontend/package-lock.json`: Menambahkan TanStack Query, Zustand, dan Sonner.
 - `frontend/.env.example` & `frontend/.gitignore`: Kontrak base URL API publik tanpa secret dan allowlist template env.
 - `frontend/app/layout.tsx` & `frontend/app/providers.tsx`: Metadata SIPATUH serta provider client global.
@@ -200,6 +216,10 @@ F01 - Bootstrap Frontend (Completed) -> Next: F02 - Auth Client & Refresh Wrappe
 - `docs/API_CONTRACT.md`: Update rincian API contract untuk rute TTE, Reports, Dashboard, dan Hardening.
 
 ## Decisions made
+- Fetch wrapper menggunakan native `fetch`, bukan Axios, agar sesuai arsitektur repo dan tidak menambah lapisan interceptor. Refresh concurrency dikendalikan oleh satu promise pada level module.
+- Redirect pascalogin default ke `/` selama app shell dan role routes belum tersedia; route tujuan berbasis role dikerjakan pada F03.
+- Profil sesi hanya disimpan sebagai cache in-memory TanStack Query. Browser hanya memegang cookie `httpOnly` yang dikelola backend.
+- Logout membersihkan cache sesi lokal setelah backend berhasil menghapus cookie, tanpa melakukan refetch `/auth/me` yang tidak diperlukan.
 - Frontend melanjutkan versi repo aktual Next.js 16, bukan menurunkan versi ke Next.js 14 yang tercantum pada handoff lama. `docs/ARCHITECTURE.md` juga sudah menetapkan Next.js 16.
 - Root layout tetap menjadi Server Component; client boundary dibatasi pada provider, toast, error boundary, dan store interaktif.
 - TanStack Query menjadi pemilik server state. Zustand hanya untuk UI state dan tidak boleh menjadi tempat penyimpanan JWT/session credential.
@@ -217,6 +237,9 @@ F01 - Bootstrap Frontend (Completed) -> Next: F02 - Auth Client & Refresh Wrappe
 - Role `BUPATI` dibatasi secara ketat hanya pada pembacaan dasbor pimpinan (`/dashboard/pimpinan`) dan laporan agregasi (`/reports`); akses ke dasbor operasional Irban langsung ditolak (`403 Forbidden`).
 
 ## Tests / verification
+- `npm test` (frontend) -> PASS (8 tests: credentials, refresh retry, concurrent single-flight, loop prevention, auth refresh bypass, safe redirect)
+- `npm audit --omit=optional` (frontend) -> PASS (0 vulnerability setelah mengganti test runner rentan dengan `tsx`)
+- Visual QA `/login?next=/laporan?tahun=2026` -> PASS (form, hierarchy, focus, spacing, dan metadata title ter-render benar)
 - `npm run lint` (frontend) -> PASS (0 error, 0 warning)
 - `npm run build` (frontend) -> PASS (Next.js production build dan TypeScript berhasil)
 - Visual QA `http://localhost:3010` -> PASS (desktop render, hierarchy, spacing, dan content flow terbaca tanpa overlap)
@@ -226,9 +249,10 @@ F01 - Bootstrap Frontend (Completed) -> Next: F02 - Auth Client & Refresh Wrappe
 - `npm run test:e2e` (backend) -> PASS (3 test suites, 13 e2e tests passed 100%)
 
 ## Known issues / blockers
-- Tidak ada blocker untuk melanjutkan ke F02.
+- Tidak ada blocker untuk melanjutkan ke F03.
 - Instalasi dependency menampilkan peringatan engine: Node lokal `20.10.0`, sedangkan salah satu dependency lint meminta minimal `20.19.0`. Lint dan build tetap lulus; upgrade Node ke versi LTS yang memenuhi constraint disarankan sebelum CI/deployment.
-- Seluruh backend checkpoints (B01 s.d. B20) dan F01 telah selesai.
+- Login menggunakan akun EGOV nyata belum dieksekusi karena checkpoint ini tidak menggunakan kredensial pengguna atau memodifikasi external database. Kontrak dan perilaku client diverifikasi melalui controller backend, unit test, build, dan visual QA.
+- Seluruh backend checkpoints (B01 s.d. B20) serta F01-F02 telah selesai.
 
 ## External schema facts verified
 - EGOV: Read-only `egov.users` (username, nama_nip, email, unit_kerja).
@@ -236,9 +260,9 @@ F01 - Bootstrap Frontend (Completed) -> Next: F02 - Auth Client & Refresh Wrappe
 - Database SIPATUH: Prisma client in sync, seed master data Irban, Jenis Pemeriksaan, Status Rekomendasi, dan Template Surat aktif.
 
 ## Next checkpoint
-- **F02 - Auth Client & Refresh Wrapper**
-- Implementasi fetch wrapper `credentials: include`, single-flight refresh satu kali, query `/auth/me`, login/logout, dan redirect aman.
-- Preconditions terpenuhi: provider TanStack Query aktif, env API publik tersedia, error/toast pattern tersedia, dan backend auth contract siap dikonsumsi.
+- **F03 - App Shell & Role Routes**
+- Implementasi layout aplikasi, navigasi responsif, route guard, serta pembatasan menu/route berdasarkan `SUPER_ADMIN`, `ADMIN_IRBAN`, dan `BUPATI`.
+- Preconditions terpenuhi: session query, login/logout, safe redirect, dan refresh wrapper sudah tersedia.
 
 ## Do not forget
 - No writes to EGOV/SIMPEG

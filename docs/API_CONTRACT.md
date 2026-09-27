@@ -30,13 +30,19 @@ Seluruh endpoint backend menggunakan basis URL `/api/v1` dan mengembalikan respo
 ### 2.1 Autentikasi (`/auth`)
 * `POST /api/v1/auth/login`
   * Body: `{ "identifier": "username_atau_nip", "password": "password_egov" }`
-  * Respons: Set `access_token` & `refresh_token` pada `httpOnly` secure cookies. Mengembalikan data profil `{ id, nama, role, irban_id }`.
+  * Respons: Set `access_token` & `refresh_token` pada `httpOnly` secure cookies. Profil berada pada `data.user` dengan field `{ id, egov_user_id, nip, nama, role, irban_id }`.
 * `POST /api/v1/auth/refresh`
   * Membaca refresh cookie yang valid, menerbitkan pasangan access token baru dengan rotasi token.
+  * Respons profil terbaru berada pada `data.user`, sama seperti login.
 * `POST /api/v1/auth/logout`
   * Membersihkan httpOnly cookies.
+  * Respons sukses hanya berisi `success` dan `message`, tanpa `data`.
 * `GET /api/v1/auth/me`
-  * Mengembalikan data pengguna terotentikasi saat ini dari token session.
+  * Mengembalikan pengguna terotentikasi langsung pada `data`, termasuk ringkasan `irban` jika tersedia.
+* Perilaku client frontend:
+  * Seluruh request menggunakan `credentials: "include"`; JWT tidak dibaca JavaScript dan tidak disimpan di browser storage.
+  * Respons `401` memicu maksimal satu request refresh yang dipakai bersama oleh request paralel, kemudian request awal diulang tepat satu kali.
+  * Login dan logout tidak memicu auto-refresh. Kegagalan refresh dikembalikan sebagai unauthenticated tanpa retry loop.
 
 ### 2.2 Manajemen Pengguna & Irban (`/users`, `/irban`)
 * `GET /api/v1/users/egov-search?query=...` (SUPER_ADMIN)
@@ -248,6 +254,5 @@ Seluruh endpoint backend menggunakan basis URL `/api/v1` dan mengembalikan respo
   * Nilai rahasia (kata sandi, token JWT/TTE, passphrase, NIK lengkap) disanitasi dan tidak pernah dibocorkan ke log sistem.
 * **Strict Read-Only External DBs**:
   * Database `egov` dan `simpeg` hanya dibaca melalui MySQL connection pool terisolasi tanpa hak akses DDL/DML.
-
 
 

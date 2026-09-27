@@ -1,4 +1,5 @@
 import { FoundationOverview } from "@/features/foundation/components/foundation-overview";
+import { SessionActions } from "@/features/auth/components/session-actions";
 
 export default function Home() {
   return (
@@ -16,10 +17,7 @@ export default function Home() {
               <p className="text-xs text-muted">Inspektorat Daerah Konawe Selatan</p>
             </div>
           </div>
-          <span className="status-badge">
-            <span className="size-2 rounded-full bg-success" />
-            Fondasi aktif
-          </span>
+          <SessionActions />
         </header>
 
         <section className="grid flex-1 items-center gap-12 py-16 lg:grid-cols-[1.15fr_0.85fr] lg:py-20">
