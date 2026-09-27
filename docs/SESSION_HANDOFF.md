@@ -1,9 +1,24 @@
 # SESSION_HANDOFF
 
 ## Active checkpoint
-F05 - User/Irban Management UI (Completed) -> Next: F06 - Unit Mapping & Pejabat UI
+F06 - Unit Mapping & Pejabat UI (Completed) -> Next: F07 - Master Data UI
 
 ## Completed in this session
+- **Checkpoint F06 (Unit Mapping & Pejabat UI)**:
+  - Antarmuka Super Admin untuk pengelolaan pembagian Unit Kerja (OPD) SIMPEG ke wilayah kerja 5 Irban serta penatausahaan pejabat berwenang penerima surat di rute `/unit-kerja`.
+  - Penjelajahan data Unit Kerja SIMPEG (`simpeg.unit_kerja` dengan filter `unit_induk = 1`) secara terintegrasi via endpoint `GET /api/v1/unit-kerja/simpeg`.
+  - Tabel Pemetaan Unit Kerja (`UnitMappingTable`) dengan pencarian instan nama OPD, filter status mapping (Semua / Sudah Ditugaskan / Belum Ditugaskan), filter wilayah Irban, dan indikator status badge terpetakan.
+  - Modal Penugasan Irban (`AssignIrbanModal`) dengan validasi backend, deteksi otomatis bila unit kerja sudah dipetakan sebelumnya beserta feedback alert sebelum memindahkan wilayah Irban.
+  - Aksi pelepasan penugasan pemetaan Unit Kerja (`unassign`) dilengkapi modal konfirmasi pencegahan salah klik.
+  - Kartu ringkasan wilayah Irban (`Ringkasan Wilayah Irban`) yang menampilkan jumlah akumulasi OPD di bawah pengawasan masing-masing Irban I s.d. Irban V.
+  - Pengelolaan Pejabat Unit Kerja (`PejabatTable` & `PejabatModal`) untuk mendaftarkan Kepala Dinas/Badan dengan jenis penugasan (DEFINITIF, PLT, PLH), NIP, nama lengkap, jabatan, periode tugas, dan status aktif.
+  - Dukungan multi-penugasan ASN: seorang ASN dapat terdaftar memiliki jabatan definitif dan penugasan PLT lintas OPD yang berbeda secara sah.
+  - Widget Resolusi Otomatis Pejabat (`RecipientResolutionCard`) yang merefleksikan business rule backend:
+    - Menampilkan kandidat utama penerima surat resmi hasil perhitungan backend (PLT/PLH aktif diprioritaskan di atas definitif).
+    - Menampilkan peringatan seleksi manual bila terdapat lebih dari 1 kandidat sah yang aktif.
+    - Menampilkan daftar seluruh kandidat sah yang terdaftar di unit kerja bersangkutan.
+  - Unit tests komprehensif (`frontend/tests/unit-kerja.test.ts`): validasi field wajib & rentang tanggal pejabat, aturan prioritas PLT/PLH di atas definitif, dan filter status mapping OPD.
+
 - **Checkpoint F05 (User/Irban Management UI)**:
   - Mengintegrasikan antarmuka Super Admin untuk pengelolaan pengguna lokal SIPATUH dan 5 wilayah kerja Irban pada rute `/pengguna`.
   - Komponen pencarian ASN read-only dari database EGOV via `/users/egov-search`, menampilkan kandidat beserta penanda akun yang sudah atau belum terdaftar di SIPATUH.
@@ -216,6 +231,9 @@ F05 - User/Irban Management UI (Completed) -> Next: F06 - Unit Mapping & Pejabat
   - Unit tests lulus (`lhp.service.spec.ts`).
 
 ## Files changed
+- `frontend/features/unit-kerja/`: Modul Pemetaan OPD dan Pejabat Unit Kerja (types, API client, custom hooks TanStack Query, tabel pemetaan OPD, modal assign Irban, badge penugasan, tabel pejabat OPD, modal tambah/edit pejabat, kartu resolusi otomatis penerima surat beraturan prioritas PLT/PLH, dan view container terintegrasi).
+- `frontend/app/(protected)/unit-kerja/page.tsx`: Mengganti placeholder dengan rute aktif `UnitKerjaManagementView`.
+- `frontend/tests/unit-kerja.test.ts`: Pengujian unit untuk validasi field pejabat, aturan tanggal, logika penentuan penerima prioritas PLT vs DEFINITIF, dan filter status mapping SIMPEG.
 - `frontend/features/users/`: Modul Manajemen Pengguna & Irban (types, API client, hooks TanStack Query, modal aktivasi akun EGOV, modal edit hak akses, modal edit detail Irban, tabel pengguna dengan filter multivariat, tabel daftar 5 wilayah Irban, dan role badge).
 - `frontend/app/(protected)/pengguna/page.tsx`: Mengganti placeholder dengan komponen `UsersManagementView`.
 - `frontend/tests/users-management.test.ts`: Pengujian unit untuk validasi penetapan wilayah Irban wajib bagi Admin Irban, serialisasi parameter query filter, dan verifikasi zero-password/secret leakage pada payload.
@@ -256,10 +274,13 @@ F05 - User/Irban Management UI (Completed) -> Next: F06 - Unit Mapping & Pejabat
 - `backend/src/reports/`: Modul pelaporan ringkasan pengawasan, ekspor Excel (CSV dengan BOM UTF-8), dan ekspor PDF landscape PDFKit.
 - `backend/src/dashboard/`: Modul dasbor operasional Irban dan dasbor eksekutif pimpinan (Bupati) dengan agregasi data multi-Irban.
 - `backend/test/reports-dashboard.e2e-spec.ts`: E2E test suite untuk pengujian guard dan proteksi akses unauthenticated pada Reports, Dashboard, dan TTE.
-- `docs/SESSION_HANDOFF.md`: Update handoff Checkpoints B17 s.d. F05.
+- `docs/SESSION_HANDOFF.md`: Update handoff Checkpoints B17 s.d. F06.
 - `docs/API_CONTRACT.md`: Update rincian API contract untuk rute TTE, Reports, Dashboard, dan Hardening.
 
 ## Decisions made
+- Pemetaan OPD menggunakan satu relasi aktif per unit kerja SIMPEG (`simpeg.unit_kerja` dengan filter `unit_induk = 1`), konsisten dengan skema backend.
+- Pejabat Unit Kerja mendukung multi-penugasan (misalnya seorang ASN menjabat definitif di OPD A sekaligus PLT di OPD B).
+- Prioritas penugasan surat peringatan dihitung otomatis di backend: PLT/PLH mendahului definitif, dan jika terdapat lebih dari satu kandidat aktif, UI menampilkan indikasi kebutuhan seleksi manual.
 - Manajemen pengguna tidak pernah memiliki form input kata sandi/kredensial; seluruh kredensial ASN sepenuhnya dikelola di sistem EGOV.
 - Role `ADMIN_IRBAN` diwajibkan memilih tepat satu `irban_id` pada form aktivasi maupun edit hak akses, selaras dengan aturan backend.
 - Aksi toggle status pengguna (aktif/nonaktif) dilengkapi dialog konfirmasi interaktif untuk mencegah kesalahan klik dari Super Admin.
@@ -293,7 +314,7 @@ F05 - User/Irban Management UI (Completed) -> Next: F06 - Unit Mapping & Pejabat
 - Role `BUPATI` dibatasi secara ketat hanya pada pembacaan dasbor pimpinan (`/dashboard/pimpinan`) dan laporan agregasi (`/reports`); akses ke dasbor operasional Irban langsung ditolak (`403 Forbidden`).
 
 ## Tests / verification
-- `npm test` (frontend) -> PASS (20 tests: auth client/refresh, safe redirect, visibilitas menu, akses route, default route role, format Rupiah/persen/tanggal, dynamic status breakdown, validasi aktivasi Irban, query builder filter user, dan zero password leak)
+- `npm test` (frontend) -> PASS (24 tests: auth client/refresh, safe redirect, visibilitas menu, akses route, default route role, format Rupiah/persen/tanggal, dynamic status breakdown, validasi aktivasi Irban, query builder filter user, zero password leak, validasi pejabat, resolusi PLT/definitif, dan pemetaan OPD)
 - `npm run lint` (frontend) -> PASS (0 error, 0 warning)
 - `npm run build` (frontend) -> PASS (Next.js production build dan TypeScript compile sukses)
 - `npm run lint` (backend) -> PASS (0 error, 0 warning)
@@ -302,9 +323,9 @@ F05 - User/Irban Management UI (Completed) -> Next: F06 - Unit Mapping & Pejabat
 - `npm run test:e2e` (backend) -> PASS (3 test suites, 13 e2e tests passed 100%)
 
 ## Known issues / blockers
-- Tidak ada blocker untuk melanjutkan ke F06.
+- Tidak ada blocker untuk melanjutkan ke F07.
 - Login menggunakan akun EGOV nyata belum dieksekusi karena checkpoint ini tidak menggunakan kredensial pengguna atau memodifikasi external database. Kontrak dan perilaku client diverifikasi melalui controller backend, unit test, build, dan visual QA.
-- Seluruh backend checkpoints (B01 s.d. B20) serta F01-F05 telah selesai.
+- Seluruh backend checkpoints (B01 s.d. B20) serta F01-F06 telah selesai.
 
 ## External schema facts verified
 - EGOV: Read-only `egov.users` (username, nama_nip, email, unit_kerja).
@@ -312,13 +333,12 @@ F05 - User/Irban Management UI (Completed) -> Next: F06 - Unit Mapping & Pejabat
 - Database SIPATUH: Prisma client in sync, seed master data Irban, Jenis Pemeriksaan, Status Rekomendasi, dan Template Surat aktif.
 
 ## Next checkpoint
-- **F06 - Unit Mapping & Pejabat UI**
-- Implementasi antarmuka Super Admin untuk pengelolaan pembagian Unit Kerja (OPD) SIMPEG ke Irban serta administrasi pejabat unit (Kepala OPD):
-  - Jelajah dan pencarian Unit Kerja SIMPEG (`unit_induk = 1`).
-  - Penugasan Unit Kerja ke wilayah Irban dengan feedback pencegahan duplikasi.
-  - CRUD manual pejabat unit kerja (DEFINITIF / PLT / PLH, periode masa penugasan, status aktif).
-  - Tampilan resolusi penerima surat peringatan (prioritas PLT/PLH aktif, fallback definitif, manual selection bila lebih dari 1 kandidat sah).
-- Preconditions terpenuhi: endpoint `/unit-kerja`, `/irban`, `/pejabat` sudah siap di backend.
+- **F07 - Master Data UI**
+- Implementasi antarmuka Super Admin untuk pengelolaan referensi master data SIPATUH pada rute `/master-data`:
+  - Jenis Pemeriksaan (Ketaatan, Kinerja, DTT, Investigatif).
+  - Status Rekomendasi dengan kategori stabil `SELESAI` vs `BELUM_SELESAI`.
+  - Surat Template dengan versioning otomatis (editor konten HTML/template variabel surat).
+- Preconditions terpenuhi: endpoint `/master-data/*` sudah lengkap dan teruji di backend.
 
 ## Do not forget
 - No writes to EGOV/SIMPEG
