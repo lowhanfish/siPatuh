@@ -36,6 +36,7 @@ export type SipatuhUser = {
 
 export type EgovCandidateUser = {
   id: string;
+  egov_user_id?: string;
   username: string;
   nama: string;
   nip: string | null;

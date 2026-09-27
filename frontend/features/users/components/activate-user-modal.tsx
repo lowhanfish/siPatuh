@@ -81,7 +81,7 @@ export function ActivateUserModal({
     try {
       setFormError(null);
       await activateMutation.mutateAsync({
-        egov_user_id: selectedCandidate.id,
+        egov_user_id: selectedCandidate.egov_user_id || selectedCandidate.id,
         role,
         irban_id: role === "ADMIN_IRBAN" ? irbanId : null,
       });
@@ -194,9 +194,9 @@ export function ActivateUserModal({
               ) : null}
 
               <div className="max-h-60 overflow-y-auto divide-y divide-line/60 rounded-xl border border-line bg-canvas/30">
-                {candidates.map((cand) => (
+                {candidates.map((cand, idx) => (
                   <div
-                    key={cand.id}
+                    key={cand.id || cand.egov_user_id || cand.username || `candidate-${idx}`}
                     className="flex flex-col gap-2 p-3 text-xs sm:flex-row sm:items-center sm:justify-between transition-colors hover:bg-surface"
                   >
                     <div className="space-y-0.5">
@@ -313,8 +313,8 @@ export function ActivateUserModal({
                     required
                   >
                     <option value="">-- Pilih Wilayah Irban --</option>
-                    {irbans.map((irb) => (
-                      <option key={irb.id} value={irb.id}>
+                    {irbans.map((irb, idx) => (
+                      <option key={irb.id || `irban-${idx}`} value={irb.id}>
                         {irb.nama} ({irb.kode})
                       </option>
                     ))}

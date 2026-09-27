@@ -30,6 +30,7 @@ export class UsersService {
       : null;
 
     return {
+      id: egovUser.id,
       egov_user_id: egovUser.id,
       username: egovUser.username,
       nip: egovUser.nip ?? null,

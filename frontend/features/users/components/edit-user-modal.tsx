@@ -163,8 +163,8 @@ function EditUserModalContent({
                   required
                 >
                   <option value="">-- Pilih Wilayah Irban --</option>
-                  {irbans.map((irb) => (
-                    <option key={irb.id} value={irb.id}>
+                  {irbans.map((irb, idx) => (
+                    <option key={irb.id || `irban-${idx}`} value={irb.id}>
                       {irb.nama} ({irb.kode})
                     </option>
                   ))}
