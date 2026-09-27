@@ -1,9 +1,18 @@
 # SESSION_HANDOFF
 
 ## Active checkpoint
-B20 - Backend Hardening & Final Tests (Completed) -> Next: F01 - Bootstrap Frontend (Next.js 14)
+F01 - Bootstrap Frontend (Completed) -> Next: F02 - Auth Client & Refresh Wrapper
 
 ## Completed in this session
+- **Checkpoint F01 (Bootstrap Frontend)**:
+  - Mempertahankan frontend existing dan memakai versi aktual repo: Next.js 16 App Router, React 19, TypeScript strict, dan Tailwind CSS 4.
+  - Menambahkan `QueryClientProvider` dengan default query/mutation yang konservatif serta toast host global melalui `sonner`.
+  - Menambahkan Zustand store khusus UI state. Tidak ada JWT, refresh token, password, atau data sensitif yang disimpan di Zustand maupun browser storage.
+  - Menambahkan konfigurasi publik `NEXT_PUBLIC_API_BASE_URL` melalui `.env.example` dan validator URL publik terpusat.
+  - Menambahkan route error boundary dan halaman not-found berbahasa Indonesia.
+  - Membuat struktur feature-oriented awal (`features/foundation`, `lib`, `stores`) dan halaman fondasi SIPATUH yang responsif dengan design tokens bersama.
+  - Login, refresh wrapper, dan session query sengaja tidak dikerjakan karena merupakan scope F02.
+
 - **Checkpoint B17 (TTE Integration - lowhanfish/tte_api)**:
   - `TteClient` isolated HTTP client (`backend/src/external/tte/tte.client.ts`):
     - Komunikasi aman dengan wrapper TTE API (`POST /api/sign-pdf`).
@@ -38,7 +47,7 @@ B20 - Backend Hardening & Final Tests (Completed) -> Next: F01 - Bootstrap Front
     - Dasbor Operasional Irban (`GET /api/v1/dashboard/irban`):
       - Ter-scope otomatis ke wilayah Irban pengguna.
       - Menampilkan metrik real-time LHP, Temuan, Rekomendasi, pemulihan keuangan, dan status breakdown.
-      - Widget peringatan SP Due (LHP melebihi batas 60/90/120 hari).
+      - Widget peringatan SP Due mengikuti batas SP1/SP2/SP3 pada 30/45/60 hari.
       - Riwayat aktivitas verifikasi dan tindak lanjut terbaru.
       - *Keamanan*: Peran `BUPATI` diblokir eksplisit (`403 Forbidden`).
     - Dasbor Eksekutif Pimpinan (`GET /api/v1/dashboard/pimpinan`):
@@ -166,6 +175,14 @@ B20 - Backend Hardening & Final Tests (Completed) -> Next: F01 - Bootstrap Front
   - Unit tests lulus (`lhp.service.spec.ts`).
 
 ## Files changed
+- `frontend/package.json` & `frontend/package-lock.json`: Menambahkan TanStack Query, Zustand, dan Sonner.
+- `frontend/.env.example` & `frontend/.gitignore`: Kontrak base URL API publik tanpa secret dan allowlist template env.
+- `frontend/app/layout.tsx` & `frontend/app/providers.tsx`: Metadata SIPATUH serta provider client global.
+- `frontend/app/page.tsx` & `frontend/app/globals.css`: Halaman fondasi responsif dan design tokens.
+- `frontend/app/error.tsx` & `frontend/app/not-found.tsx`: Pola fallback untuk error tak terduga dan route tidak ditemukan.
+- `frontend/features/foundation/components/foundation-overview.tsx`: Komponen feature-oriented pertama.
+- `frontend/lib/env.ts`: Validasi konfigurasi URL API publik.
+- `frontend/stores/ui-store.ts`: Store UI-only untuk navigasi responsif pada checkpoint berikutnya.
 - `backend/package.json` & `backend/package-lock.json`: Penambahan `@nestjs/throttler` dependency.
 - `backend/src/app.module.ts`: Registrasi ThrottlerModule, ReportsModule, DashboardModule, dan ThrottlerGuard sebagai APP_GUARD.
 - `backend/src/external/`:
@@ -183,6 +200,10 @@ B20 - Backend Hardening & Final Tests (Completed) -> Next: F01 - Bootstrap Front
 - `docs/API_CONTRACT.md`: Update rincian API contract untuk rute TTE, Reports, Dashboard, dan Hardening.
 
 ## Decisions made
+- Frontend melanjutkan versi repo aktual Next.js 16, bukan menurunkan versi ke Next.js 14 yang tercantum pada handoff lama. `docs/ARCHITECTURE.md` juga sudah menetapkan Next.js 16.
+- Root layout tetap menjadi Server Component; client boundary dibatasi pada provider, toast, error boundary, dan store interaktif.
+- TanStack Query menjadi pemilik server state. Zustand hanya untuk UI state dan tidak boleh menjadi tempat penyimpanan JWT/session credential.
+- F01 hanya menyiapkan kontrak `NEXT_PUBLIC_API_BASE_URL`; mekanisme `credentials: include`, single-flight refresh, dan auth session dikerjakan pada F02.
 - Scope Irban selalu dipaksakan dari token JWT backend pada `IrbanScopeService.resolveEffectiveIrbanId()` sehingga manipulasi parameter query client diabaikan total untuk `ADMIN_IRBAN`.
 - Setiap record LHP menyimpan snapshot `irban_id` saat dibuat, menjamin integritas histori pemeriksaan meskipun penugasan unit kerja ke Irban berubah di kemudian hari.
 - Penutupan LHP menggunakan kolom `closed_at` dan `closed_by` (bukan enum lifecycle), sehingga kondisi LHP tetap dapat dibaca secara alami dari status rekomendasi. Reopen LHP dilindungi hanya untuk `SUPER_ADMIN` dengan alasan wajib.
@@ -196,13 +217,18 @@ B20 - Backend Hardening & Final Tests (Completed) -> Next: F01 - Bootstrap Front
 - Role `BUPATI` dibatasi secara ketat hanya pada pembacaan dasbor pimpinan (`/dashboard/pimpinan`) dan laporan agregasi (`/reports`); akses ke dasbor operasional Irban langsung ditolak (`403 Forbidden`).
 
 ## Tests / verification
+- `npm run lint` (frontend) -> PASS (0 error, 0 warning)
+- `npm run build` (frontend) -> PASS (Next.js production build dan TypeScript berhasil)
+- Visual QA `http://localhost:3010` -> PASS (desktop render, hierarchy, spacing, dan content flow terbaca tanpa overlap)
 - `npm run lint` (backend) -> PASS (0 error, 0 warning)
 - `npm run build` (backend) -> PASS (NestJS production build berhasil tanpa error)
 - `npm test` (backend) -> PASS (23 test suites, 135 unit tests passed 100%)
 - `npm run test:e2e` (backend) -> PASS (3 test suites, 13 e2e tests passed 100%)
 
 ## Known issues / blockers
-- Tidak ada blocker. Seluruh backend checkpoints (B01 s.d. B20) telah selesai 100%.
+- Tidak ada blocker untuk melanjutkan ke F02.
+- Instalasi dependency menampilkan peringatan engine: Node lokal `20.10.0`, sedangkan salah satu dependency lint meminta minimal `20.19.0`. Lint dan build tetap lulus; upgrade Node ke versi LTS yang memenuhi constraint disarankan sebelum CI/deployment.
+- Seluruh backend checkpoints (B01 s.d. B20) dan F01 telah selesai.
 
 ## External schema facts verified
 - EGOV: Read-only `egov.users` (username, nama_nip, email, unit_kerja).
@@ -210,11 +236,13 @@ B20 - Backend Hardening & Final Tests (Completed) -> Next: F01 - Bootstrap Front
 - Database SIPATUH: Prisma client in sync, seed master data Irban, Jenis Pemeriksaan, Status Rekomendasi, dan Template Surat aktif.
 
 ## Next checkpoint
-- **F01 - Bootstrap Frontend (Next.js 14 App Router, Tailwind CSS, Shadcn UI, Axios, TanStack Query)**
-- Preconditions: Seluruh backend API contract B01-B20 siap dikonsumsi, skema autentikasi cookie JWT dan RBAC terpasang penuh.
+- **F02 - Auth Client & Refresh Wrapper**
+- Implementasi fetch wrapper `credentials: include`, single-flight refresh satu kali, query `/auth/me`, login/logout, dan redirect aman.
+- Preconditions terpenuhi: provider TanStack Query aktif, env API publik tersedia, error/toast pattern tersedia, dan backend auth contract siap dikonsumsi.
 
 ## Do not forget
 - No writes to EGOV/SIMPEG
 - No secrets in repo/logs
 - Admin Irban scope enforced in backend
 - Bupati read-only executive access only
+- JWT/access token/refresh token tidak boleh disimpan di localStorage, sessionStorage, atau Zustand
