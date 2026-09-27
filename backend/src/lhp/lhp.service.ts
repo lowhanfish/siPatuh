@@ -507,4 +507,181 @@ export class LhpService {
       mimeType: 'application/pdf',
     };
   }
+
+  /**
+   * Menandai LHP selesai (closed) oleh Admin Irban atau Super Admin
+   */
+  async closeLhp(id: string, currentUser: AuthenticatedUser) {
+    this.irbanScopeService.assertCanMutate(currentUser);
+
+    const lhp = await this.prisma.lhp.findUnique({
+      where: { id },
+      include: {
+        temuans: {
+          include: {
+            rekomendasis: {
+              include: { status_rekomendasi: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!lhp) {
+      throw new NotFoundException(`LHP dengan ID ${id} tidak ditemukan`);
+    }
+
+    this.irbanScopeService.validateIrbanAccess(
+      currentUser,
+      lhp.irban_id,
+      'WRITE',
+    );
+
+    if (lhp.closed_at !== null) {
+      throw new BadRequestException(
+        'LHP ini sudah dalam status selesai (closed)',
+      );
+    }
+
+    // Hitung rekomendasi yang belum selesai sebagai informasi transparan
+    let pendingCount = 0;
+    for (const temuan of lhp.temuans) {
+      for (const rekom of temuan.rekomendasis) {
+        if (rekom.status_rekomendasi?.kategori === 'BELUM_SELESAI') {
+          pendingCount++;
+        }
+      }
+    }
+
+    const closed = await this.prisma.lhp.update({
+      where: { id },
+      data: {
+        closed_at: new Date(),
+        closed_by: currentUser.id,
+      },
+      include: {
+        closed_by_user: { select: { id: true, nama: true, nip: true } },
+      },
+    });
+
+    await this.auditService.log({
+      actor_id: currentUser.id,
+      actor_role: currentUser.role,
+      action: 'CLOSE_LHP',
+      entity: 'Lhp',
+      entity_id: id,
+      metadata: {
+        nomor_lhp: lhp.nomor_lhp,
+        pending_rekomendasi_count: pendingCount,
+      },
+    });
+
+    return {
+      message: 'LHP berhasil ditandai selesai',
+      lhp: closed,
+      pending_rekomendasi_count: pendingCount,
+    };
+  }
+
+  /**
+   * Membuka kembali LHP yang telah ditutup (khusus SUPER_ADMIN) dengan alasan wajib
+   */
+  async reopenLhp(id: string, alasan: string, currentUser: AuthenticatedUser) {
+    if (currentUser.role !== RoleEnum.SUPER_ADMIN) {
+      throw new ForbiddenException(
+        'Hanya Super Admin (Inspektur) yang berwenang membuka kembali LHP yang telah ditutup',
+      );
+    }
+
+    if (!alasan || alasan.trim().length === 0) {
+      throw new BadRequestException(
+        'Alasan pembukaan kembali LHP (reopen_reason) wajib diisi',
+      );
+    }
+
+    const lhp = await this.prisma.lhp.findUnique({ where: { id } });
+    if (!lhp) {
+      throw new NotFoundException(`LHP dengan ID ${id} tidak ditemukan`);
+    }
+
+    if (lhp.closed_at === null) {
+      throw new BadRequestException(
+        'LHP ini sedang aktif (tidak dalam status closed)',
+      );
+    }
+
+    const reopened = await this.prisma.lhp.update({
+      where: { id },
+      data: {
+        closed_at: null,
+        closed_by: null,
+        reopen_reason: alasan.trim(),
+      },
+    });
+
+    await this.auditService.log({
+      actor_id: currentUser.id,
+      actor_role: currentUser.role,
+      action: 'REOPEN_LHP',
+      entity: 'Lhp',
+      entity_id: id,
+      metadata: {
+        nomor_lhp: lhp.nomor_lhp,
+        alasan: alasan.trim(),
+        closed_at_before: lhp.closed_at,
+      },
+    });
+
+    return {
+      message: 'LHP berhasil dibuka kembali',
+      lhp: reopened,
+    };
+  }
+
+  /**
+   * Hard delete LHP dibatasi aman: dilarang menghapus LHP jika telah memiliki surat TTE resmi
+   */
+  async deleteLhp(id: string, currentUser: AuthenticatedUser) {
+    if (currentUser.role !== RoleEnum.SUPER_ADMIN) {
+      throw new ForbiddenException(
+        'Hanya Super Admin yang diizinkan menghapus LHP secara permanen',
+      );
+    }
+
+    const lhp = await this.prisma.lhp.findUnique({
+      where: { id },
+      include: {
+        surat_peringatans: {
+          where: { signed_at: { not: null } },
+        },
+      },
+    });
+
+    if (!lhp) {
+      throw new NotFoundException(`LHP dengan ID ${id} tidak ditemukan`);
+    }
+
+    if (lhp.surat_peringatans.length > 0) {
+      throw new BadRequestException(
+        'LHP tidak dapat dihapus karena telah memiliki Surat Peringatan resmi yang ditandatangani secara elektronik (immutable)',
+      );
+    }
+
+    await this.auditService.log({
+      actor_id: currentUser.id,
+      actor_role: currentUser.role,
+      action: 'DELETE_LHP',
+      entity: 'Lhp',
+      entity_id: id,
+      metadata: {
+        nomor_lhp: lhp.nomor_lhp,
+        simpeg_unit_kerja_id: lhp.simpeg_unit_kerja_id,
+        irban_id: lhp.irban_id,
+      },
+    });
+
+    await this.prisma.lhp.delete({ where: { id } });
+
+    return { success: true, message: 'LHP berhasil dihapus secara permanen' };
+  }
 }

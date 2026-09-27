@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Query,
   Body,
@@ -18,6 +19,7 @@ import { LhpService } from './lhp.service';
 import { CreateLhpDto } from './dto/create-lhp.dto';
 import { UpdateLhpDto } from './dto/update-lhp.dto';
 import { FilterLhpDto } from './dto/filter-lhp.dto';
+import { ReopenLhpDto } from './dto/close-reopen-lhp.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -89,5 +91,30 @@ export class LhpController {
   ) {
     const fileInfo = await this.lhpService.getFileForDownload(id, user);
     res.download(fileInfo.absolutePath, fileInfo.filename);
+  }
+
+  @Post(':id/close')
+  @Roles(RoleEnum.SUPER_ADMIN, RoleEnum.ADMIN_IRBAN)
+  async close(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.lhpService.closeLhp(id, user);
+  }
+
+  @Post(':id/reopen')
+  @Roles(RoleEnum.SUPER_ADMIN)
+  async reopen(
+    @Param('id') id: string,
+    @Body() dto: ReopenLhpDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.lhpService.reopenLhp(id, dto.alasan, user);
+  }
+
+  @Delete(':id')
+  @Roles(RoleEnum.SUPER_ADMIN)
+  async delete(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.lhpService.deleteLhp(id, user);
   }
 }

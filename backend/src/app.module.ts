@@ -11,6 +11,11 @@ import { FilesModule } from './files/files.module';
 import { AuditModule } from './audit/audit.module';
 import { MasterDataModule } from './master-data/master-data.module';
 import { LhpModule } from './lhp/lhp.module';
+import { TemuanModule } from './temuan/temuan.module';
+import { RekomendasiModule } from './rekomendasi/rekomendasi.module';
+import { TindakLanjutModule } from './tindak-lanjut/tindak-lanjut.module';
+import { VerifikasiModule } from './verifikasi/verifikasi.module';
+import { SuratPeringatanModule } from './surat-peringatan/surat-peringatan.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 import { validateConfig } from './config/env.validation';
@@ -27,6 +32,11 @@ import { validateConfig } from './config/env.validation';
     IrbanModule,
     MasterDataModule,
     LhpModule,
+    TemuanModule,
+    RekomendasiModule,
+    TindakLanjutModule,
+    VerifikasiModule,
+    SuratPeringatanModule,
     ExternalModule,
     FilesModule,
     AuditModule,

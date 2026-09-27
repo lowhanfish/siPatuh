@@ -252,4 +252,79 @@ describe('LhpService', () => {
       ).rejects.toThrow(BadRequestException);
     });
   });
+
+  describe('closeLhp', () => {
+    it('should close LHP successfully and record closed_at and closed_by', async () => {
+      mockPrisma.lhp.findUnique.mockResolvedValueOnce({
+        id: 'lhp-1',
+        nomor_lhp: 'LHP/01/2026',
+        irban_id: 'irban-1',
+        closed_at: null,
+        temuans: [],
+      });
+      mockPrisma.lhp.update.mockResolvedValueOnce({
+        id: 'lhp-1',
+        closed_at: new Date(),
+        closed_by: adminIrban1.id,
+      });
+
+      const res = await service.closeLhp('lhp-1', adminIrban1);
+      expect(res.message).toBe('LHP berhasil ditandai selesai');
+      expect(mockPrisma.lhp.update).toHaveBeenCalled();
+      expect(mockAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'CLOSE_LHP' }),
+      );
+    });
+  });
+
+  describe('reopenLhp', () => {
+    it('should reject non-superadmin from reopening LHP', async () => {
+      await expect(
+        service.reopenLhp('lhp-1', 'Alasan pembukaan', adminIrban1),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should reject reopening if reason is empty', async () => {
+      await expect(
+        service.reopenLhp('lhp-1', '   ', superAdmin),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should allow Super Admin to reopen closed LHP with valid reason', async () => {
+      mockPrisma.lhp.findUnique.mockResolvedValueOnce({
+        id: 'lhp-closed',
+        closed_at: new Date('2026-04-01'),
+        nomor_lhp: 'LHP/01/2026',
+      });
+      mockPrisma.lhp.update.mockResolvedValueOnce({
+        id: 'lhp-closed',
+        closed_at: null,
+        closed_by: null,
+        reopen_reason: 'Ditemukan bukti tindak lanjut susulan',
+      });
+
+      const res = await service.reopenLhp(
+        'lhp-closed',
+        'Ditemukan bukti tindak lanjut susulan',
+        superAdmin,
+      );
+      expect(res.message).toBe('LHP berhasil dibuka kembali');
+      expect(mockAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'REOPEN_LHP' }),
+      );
+    });
+  });
+
+  describe('deleteLhp', () => {
+    it('should prevent deleting LHP that has signed TTE letters', async () => {
+      mockPrisma.lhp.findUnique.mockResolvedValueOnce({
+        id: 'lhp-with-tte',
+        surat_peringatans: [{ id: 'sp-signed-1', signed_at: new Date() }],
+      });
+
+      await expect(
+        service.deleteLhp('lhp-with-tte', superAdmin),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
 });
