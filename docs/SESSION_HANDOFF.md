@@ -1,9 +1,20 @@
 # SESSION_HANDOFF
 
 ## Active checkpoint
-F04 - Dashboard Admin Irban (Completed) -> Next: F05 - User/Irban Management UI
+F05 - User/Irban Management UI (Completed) -> Next: F06 - Unit Mapping & Pejabat UI
 
 ## Completed in this session
+- **Checkpoint F05 (User/Irban Management UI)**:
+  - Mengintegrasikan antarmuka Super Admin untuk pengelolaan pengguna lokal SIPATUH dan 5 wilayah kerja Irban pada rute `/pengguna`.
+  - Komponen pencarian ASN read-only dari database EGOV via `/users/egov-search`, menampilkan kandidat beserta penanda akun yang sudah atau belum terdaftar di SIPATUH.
+  - Form aktivasi pengguna (`ActivateUserModal`) dengan penetapan peran (`SUPER_ADMIN`, `ADMIN_IRBAN`, `BUPATI`).
+  - Validasi ketat peran: role `ADMIN_IRBAN` mewajibkan penugasan tepat ke salah satu dari 5 wilayah Irban.
+  - Mematuhi aturan keamanan: tidak pernah ada input kata sandi pada formulir manajemen akun; kredensial dan kata sandi sepenuhnya berada di database EGOV.
+  - Tabel pengguna terdaftar (`UserListTable`) dengan filter pencarian nama/NIP/username, filter role, filter wilayah Irban, dan filter status aktif/nonaktif.
+  - Aksi toggle aktif/nonaktif akun secara aman dengan modal konfirmasi dan notifikasi toast (tanpa mengubah atau menghapus data di EGOV).
+  - Modal edit hak akses (`EditUserModal`) untuk memperbarui role atau memindahkan penugasan wilayah Irban.
+  - Tabel dan modal pengelolaan 5 wilayah kerja Irban (`IrbanListTable` & `EditIrbanModal`) untuk memperbarui nama dan cakupan keterangan Irban.
+
 - **Checkpoint F04 (Dashboard Admin Irban)**:
   - Mengintegrasikan halaman `/dashboard/irban` dengan endpoint `GET /api/v1/dashboard/irban` menggunakan TanStack Query.
   - Menampilkan 4 kartu statistik utama:
@@ -205,6 +216,9 @@ F04 - Dashboard Admin Irban (Completed) -> Next: F05 - User/Irban Management UI
   - Unit tests lulus (`lhp.service.spec.ts`).
 
 ## Files changed
+- `frontend/features/users/`: Modul Manajemen Pengguna & Irban (types, API client, hooks TanStack Query, modal aktivasi akun EGOV, modal edit hak akses, modal edit detail Irban, tabel pengguna dengan filter multivariat, tabel daftar 5 wilayah Irban, dan role badge).
+- `frontend/app/(protected)/pengguna/page.tsx`: Mengganti placeholder dengan komponen `UsersManagementView`.
+- `frontend/tests/users-management.test.ts`: Pengujian unit untuk validasi penetapan wilayah Irban wajib bagi Admin Irban, serialisasi parameter query filter, dan verifikasi zero-password/secret leakage pada payload.
 - `frontend/features/dashboard/`: Modul Dashboard Admin Irban (types, API client, custom hook TanStack Query, kartu metrik, status breakdown dinamis, peringatan SP Due, tabel LHP terkini, loading skeleton, dan formatter Rupiah/tanggal).
 - `frontend/app/(protected)/dashboard/irban/page.tsx`: Mengganti placeholder dengan komponen `IrbanDashboardView`.
 - `frontend/tests/dashboard-irban.test.ts`: Pengujian unit untuk format Rupiah, format persen, format tanggal Indonesia, handling status breakdown dinamis tanpa hardcode, dan kalkulasi recovery rate kerugian daerah.
@@ -242,10 +256,14 @@ F04 - Dashboard Admin Irban (Completed) -> Next: F05 - User/Irban Management UI
 - `backend/src/reports/`: Modul pelaporan ringkasan pengawasan, ekspor Excel (CSV dengan BOM UTF-8), dan ekspor PDF landscape PDFKit.
 - `backend/src/dashboard/`: Modul dasbor operasional Irban dan dasbor eksekutif pimpinan (Bupati) dengan agregasi data multi-Irban.
 - `backend/test/reports-dashboard.e2e-spec.ts`: E2E test suite untuk pengujian guard dan proteksi akses unauthenticated pada Reports, Dashboard, dan TTE.
-- `docs/SESSION_HANDOFF.md`: Update handoff Checkpoints B17 s.d. F04.
+- `docs/SESSION_HANDOFF.md`: Update handoff Checkpoints B17 s.d. F05.
 - `docs/API_CONTRACT.md`: Update rincian API contract untuk rute TTE, Reports, Dashboard, dan Hardening.
 
 ## Decisions made
+- Manajemen pengguna tidak pernah memiliki form input kata sandi/kredensial; seluruh kredensial ASN sepenuhnya dikelola di sistem EGOV.
+- Role `ADMIN_IRBAN` diwajibkan memilih tepat satu `irban_id` pada form aktivasi maupun edit hak akses, selaras dengan aturan backend.
+- Aksi toggle status pengguna (aktif/nonaktif) dilengkapi dialog konfirmasi interaktif untuk mencegah kesalahan klik dari Super Admin.
+- Data master 5 Irban ditampilkan pada tab terpisah dengan kemampuan edit nama dan cakupan keterangan tanpa mengubah kode permanen (`IRBAN_I` s.d. `IRBAN_V`).
 - Seluruh angka dan metrik operasional dashboard Irban murni berasal dari payload API backend (`/api/v1/dashboard/irban`), tidak pernah dihitung ulang dari data parsial client.
 - Status breakdown dirender dinamis dari `Record<string, number>` sehingga penambahan atau perubahan label status rekomendasi di tabel master tidak merusak antarmuka.
 - Kartu pemulihan kerugian daerah mendukung nilai nol (`Rp 0`) atau opsional tanpa menyebabkan layout crash.
@@ -275,7 +293,7 @@ F04 - Dashboard Admin Irban (Completed) -> Next: F05 - User/Irban Management UI
 - Role `BUPATI` dibatasi secara ketat hanya pada pembacaan dasbor pimpinan (`/dashboard/pimpinan`) dan laporan agregasi (`/reports`); akses ke dasbor operasional Irban langsung ditolak (`403 Forbidden`).
 
 ## Tests / verification
-- `npm test` (frontend) -> PASS (17 tests: auth client/refresh, safe redirect, visibilitas menu, akses route, default route role, format Rupiah/persen/tanggal, dan status breakdown dinamis)
+- `npm test` (frontend) -> PASS (20 tests: auth client/refresh, safe redirect, visibilitas menu, akses route, default route role, format Rupiah/persen/tanggal, dynamic status breakdown, validasi aktivasi Irban, query builder filter user, dan zero password leak)
 - `npm run lint` (frontend) -> PASS (0 error, 0 warning)
 - `npm run build` (frontend) -> PASS (Next.js production build dan TypeScript compile sukses)
 - `npm run lint` (backend) -> PASS (0 error, 0 warning)
@@ -284,9 +302,9 @@ F04 - Dashboard Admin Irban (Completed) -> Next: F05 - User/Irban Management UI
 - `npm run test:e2e` (backend) -> PASS (3 test suites, 13 e2e tests passed 100%)
 
 ## Known issues / blockers
-- Tidak ada blocker untuk melanjutkan ke F05.
+- Tidak ada blocker untuk melanjutkan ke F06.
 - Login menggunakan akun EGOV nyata belum dieksekusi karena checkpoint ini tidak menggunakan kredensial pengguna atau memodifikasi external database. Kontrak dan perilaku client diverifikasi melalui controller backend, unit test, build, dan visual QA.
-- Seluruh backend checkpoints (B01 s.d. B20) serta F01-F04 telah selesai.
+- Seluruh backend checkpoints (B01 s.d. B20) serta F01-F05 telah selesai.
 
 ## External schema facts verified
 - EGOV: Read-only `egov.users` (username, nama_nip, email, unit_kerja).
@@ -294,13 +312,13 @@ F04 - Dashboard Admin Irban (Completed) -> Next: F05 - User/Irban Management UI
 - Database SIPATUH: Prisma client in sync, seed master data Irban, Jenis Pemeriksaan, Status Rekomendasi, dan Template Surat aktif.
 
 ## Next checkpoint
-- **F05 - User/Irban Management UI**
-- Implementasi antarmuka Super Admin untuk pengelolaan pengguna lokal SIPATUH dan Irban:
-  - Pencarian user dari database EGOV secara read-only via API backend.
-  - Aktivasi user SIPATUH dengan penetapan role (`SUPER_ADMIN`, `ADMIN_IRBAN`, `BUPATI`); penugasan satu `irban_id` wajib bagi `ADMIN_IRBAN`.
-  - Daftar pengguna terdaftar, aktivasi/deaktivasi status akun (tanpa menyentuh EGOV).
-  - CRUD referensi Irban sesuai endpoint backend.
-- Preconditions terpenuhi: app shell, layout terproteksi, navigasi RBAC, dan modul backend `/users` serta `/irban` telah teruji.
+- **F06 - Unit Mapping & Pejabat UI**
+- Implementasi antarmuka Super Admin untuk pengelolaan pembagian Unit Kerja (OPD) SIMPEG ke Irban serta administrasi pejabat unit (Kepala OPD):
+  - Jelajah dan pencarian Unit Kerja SIMPEG (`unit_induk = 1`).
+  - Penugasan Unit Kerja ke wilayah Irban dengan feedback pencegahan duplikasi.
+  - CRUD manual pejabat unit kerja (DEFINITIF / PLT / PLH, periode masa penugasan, status aktif).
+  - Tampilan resolusi penerima surat peringatan (prioritas PLT/PLH aktif, fallback definitif, manual selection bila lebih dari 1 kandidat sah).
+- Preconditions terpenuhi: endpoint `/unit-kerja`, `/irban`, `/pejabat` sudah siap di backend.
 
 ## Do not forget
 - No writes to EGOV/SIMPEG
@@ -308,4 +326,5 @@ F04 - Dashboard Admin Irban (Completed) -> Next: F05 - User/Irban Management UI
 - Admin Irban scope enforced in backend
 - Bupati read-only executive access only
 - JWT/access token/refresh token tidak boleh disimpan di localStorage, sessionStorage, atau Zustand
+
 
