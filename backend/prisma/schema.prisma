@@ -1,0 +1,325 @@
+// Prisma schema for SIPATUH (Inspektorat Daerah Kabupaten Konawe Selatan)
+// Database: sipatuh (READ/WRITE)
+// External DB (egov, simpeg) diakses via scalar ID tanpa Foreign Key silang.
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum RoleEnum {
+  SUPER_ADMIN
+  ADMIN_IRBAN
+  BUPATI
+}
+
+enum PenugasanEnum {
+  DEFINITIF
+  PLT
+  PLH
+}
+
+enum KategoriStatusEnum {
+  SELESAI
+  BELUM_SELESAI
+}
+
+enum AttachmentTypeEnum {
+  LHP
+  TINDAK_LANJUT
+  VERIFIKASI
+}
+
+enum SpLevelEnum {
+  SP1
+  SP2
+  SP3
+}
+
+model User {
+  id           String    @id @default(uuid())
+  egov_user_id String    @unique // Referensi scalar ke database EGOV
+  nip          String?   // Snapshot NIP untuk kemudahan referensi
+  nama         String
+  role         RoleEnum
+  irban_id     String?   // Wajib diisi jika role = ADMIN_IRBAN
+  is_active    Boolean   @default(true)
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  irban               Irban?            @relation(fields: [irban_id], references: [id])
+  closed_lhps         Lhp[]             @relation("LhpClosedBy")
+  tindak_lanjuts      TindakLanjut[]    @relation("TindakLanjutCreatedBy")
+  verifikasis         Verifikasi[]      @relation("VerifikasiVerifiedBy")
+  signed_surats       SuratPeringatan[] @relation("SuratSignedBy")
+  audit_logs          AuditLog[]        @relation("AuditActor")
+
+  @@index([role])
+  @@index([irban_id])
+}
+
+model Irban {
+  id         String   @id @default(uuid())
+  kode       String   @unique // IRBAN_1 s/d IRBAN_5
+  nama       String   // Nama Irban Wilayah I - V
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  users            User[]
+  unit_kerja_maps  IrbanUnitKerja[]
+  lhps             Lhp[]
+}
+
+model IrbanUnitKerja {
+  id                   String   @id @default(uuid())
+  irban_id             String
+  simpeg_unit_kerja_id String   @unique // 1 OPD aktif terikat tepat 1 Irban pada satu waktu (varchar(25) di SIMPEG)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  irban Irban @relation(fields: [irban_id], references: [id], onDelete: Cascade)
+
+  @@index([irban_id])
+}
+
+model PejabatUnitKerja {
+  id                   String        @id @default(uuid())
+  simpeg_unit_kerja_id String        // Referensi scalar ke SIMPEG (varchar(25))
+  nip                  String
+  nama                 String
+  jabatan              String
+  jenis_penugasan      PenugasanEnum @default(DEFINITIF)
+  tanggal_mulai        DateTime
+  tanggal_selesai      DateTime?
+  is_active            Boolean       @default(true)
+  created_at           DateTime      @default(now())
+  updated_at           DateTime      @updatedAt
+
+  @@index([simpeg_unit_kerja_id])
+  @@index([is_active])
+  @@index([nip])
+}
+
+model JenisPemeriksaan {
+  id         String   @id @default(uuid())
+  nama       String   @unique
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  lhps Lhp[]
+}
+
+model StatusRekomendasi {
+  id         String             @id @default(uuid())
+  nama       String             @unique
+  kategori   KategoriStatusEnum @default(BELUM_SELESAI)
+  urutan     Int                @default(1)
+  is_active  Boolean            @default(true)
+  created_at DateTime           @default(now())
+  updated_at DateTime           @updatedAt
+
+  rekomendasis Rekomendasi[]
+  verifikasis  Verifikasi[]
+
+  @@index([kategori])
+  @@index([is_active])
+}
+
+model SuratTemplate {
+  id          String   @id @default(uuid())
+  jenis_surat String   // SP1, SP2, SP3
+  judul       String
+  konten_html String   @db.Text
+  versi       Int      @default(1)
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([jenis_surat, versi])
+}
+
+model Lhp {
+  id                          String    @id @default(uuid())
+  nomor_lhp                   String    @unique
+  tanggal_lhp                 DateTime
+  tanggal_diterima_lhp        DateTime  // Basis countdown surat peringatan
+  tanggal_mulai_pemeriksaan   DateTime?
+  tanggal_selesai_pemeriksaan DateTime?
+  simpeg_unit_kerja_id        String    // Target pemeriksaan (varchar(25) di SIMPEG)
+  irban_id                    String    // Snapshot kepemilikan Irban saat LHP dibuat
+  jenis_pemeriksaan_id        String
+  file_path                   String?   // Path relatif di uploads/lhp
+  closed_at                   DateTime? // Timestamp penutupan manual
+  closed_by                   String?   // User yang menandai selesai
+  reopen_reason               String?   @db.Text
+  created_at                  DateTime  @default(now())
+  updated_at                  DateTime  @updatedAt
+
+  irban             Irban             @relation(fields: [irban_id], references: [id])
+  jenis_pemeriksaan JenisPemeriksaan  @relation(fields: [jenis_pemeriksaan_id], references: [id])
+  closed_by_user    User?             @relation("LhpClosedBy", fields: [closed_by], references: [id])
+  temuans           Temuan[]
+  surat_peringatans SuratPeringatan[]
+
+  @@index([irban_id])
+  @@index([simpeg_unit_kerja_id])
+  @@index([jenis_pemeriksaan_id])
+  @@index([tanggal_diterima_lhp])
+  @@index([closed_at])
+}
+
+model Temuan {
+  id           String   @id @default(uuid())
+  lhp_id       String
+  nomor_urut   Int      // Nomor urut dalam satu LHP (1..n)
+  judul        String
+  uraian       String   @db.Text
+  nilai_temuan Decimal? @db.Decimal(15, 2)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  lhp          Lhp           @relation(fields: [lhp_id], references: [id], onDelete: Cascade)
+  rekomendasis Rekomendasi[]
+
+  @@unique([lhp_id, nomor_urut])
+  @@index([lhp_id])
+}
+
+model Rekomendasi {
+  id                    String   @id @default(uuid())
+  temuan_id             String
+  nomor_urut            Int      // Nomor urut dalam satu Temuan (1..n)
+  uraian                String   @db.Text
+  nilai_rekomendasi     Decimal? @db.Decimal(15, 2)
+  status_rekomendasi_id String
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  temuan                 Temuan                 @relation(fields: [temuan_id], references: [id], onDelete: Cascade)
+  status_rekomendasi     StatusRekomendasi      @relation(fields: [status_rekomendasi_id], references: [id])
+  tindak_lanjuts         TindakLanjut[]
+  surat_peringatan_items SuratPeringatanItem[]
+
+  @@unique([temuan_id, nomor_urut])
+  @@index([temuan_id])
+  @@index([status_rekomendasi_id])
+}
+
+model TindakLanjut {
+  id                  String   @id @default(uuid())
+  rekomendasi_id      String
+  tanggal_diterima    DateTime // Wajib: tanggal dokumen diterima dari OPD
+  uraian              String   @db.Text
+  nilai_tindak_lanjut Decimal? @db.Decimal(15, 2)
+  created_by          String
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  rekomendasi     Rekomendasi  @relation(fields: [rekomendasi_id], references: [id], onDelete: Cascade)
+  created_by_user User         @relation("TindakLanjutCreatedBy", fields: [created_by], references: [id])
+  verifikasis     Verifikasi[]
+
+  @@index([rekomendasi_id])
+  @@index([created_by])
+  @@index([tanggal_diterima])
+}
+
+model Verifikasi {
+  id                    String   @id @default(uuid())
+  tindak_lanjut_id      String
+  catatan               String   @db.Text // Wajib
+  status_rekomendasi_id String   // Status hasil keputusan verifikasi
+  verifier_id           String
+  verified_at           DateTime @default(now())
+  created_at            DateTime @default(now())
+
+  tindak_lanjut      TindakLanjut      @relation(fields: [tindak_lanjut_id], references: [id], onDelete: Cascade)
+  status_rekomendasi StatusRekomendasi @relation(fields: [status_rekomendasi_id], references: [id])
+  verifier           User              @relation("VerifikasiVerifiedBy", fields: [verifier_id], references: [id])
+
+  @@index([tindak_lanjut_id])
+  @@index([status_rekomendasi_id])
+  @@index([verifier_id])
+}
+
+model Attachment {
+  id            String             @id @default(uuid())
+  owner_type    AttachmentTypeEnum // LHP, TINDAK_LANJUT, VERIFIKASI
+  owner_id      String             // ID dari entitas pemilik
+  original_name String
+  stored_name   String             @unique
+  file_path     String             // Relatif terhadap uploads/
+  mime_type     String
+  file_size     Int
+  created_at    DateTime           @default(now())
+
+  @@index([owner_type, owner_id])
+}
+
+model SuratPeringatan {
+  id                   String      @id @default(uuid())
+  lhp_id               String
+  level                SpLevelEnum // SP1, SP2, SP3
+  nomor_surat          String      @unique // Wajib unik
+  tanggal_surat        DateTime
+  simpeg_unit_kerja_id String      // varchar(25) di SIMPEG
+  recipient_nip        String      // Snapshot NIP pejabat saat surat dibuat
+  recipient_nama       String      // Snapshot nama pejabat
+  recipient_jabatan    String      // Snapshot jabatan
+  template_version     Int         @default(1)
+  draft_path           String?
+  signed_path          String?
+  signed_at            DateTime?
+  signed_by            String?
+  created_at           DateTime    @default(now())
+  updated_at           DateTime    @updatedAt
+
+  lhp            Lhp                   @relation(fields: [lhp_id], references: [id], onDelete: Cascade)
+  signed_by_user User?                 @relation("SuratSignedBy", fields: [signed_by], references: [id])
+  items          SuratPeringatanItem[]
+
+  @@unique([lhp_id, level]) // Maksimal 1 surat per level per LHP
+  @@index([lhp_id])
+  @@index([level])
+  @@index([signed_at])
+}
+
+model SuratPeringatanItem {
+  id                         String   @id @default(uuid())
+  surat_peringatan_id        String
+  rekomendasi_id             String
+  uraian_snapshot            String   @db.Text
+  nilai_rekomendasi_snapshot Decimal? @db.Decimal(15, 2)
+  created_at                 DateTime @default(now())
+
+  surat_peringatan SuratPeringatan @relation(fields: [surat_peringatan_id], references: [id], onDelete: Cascade)
+  rekomendasi      Rekomendasi     @relation(fields: [rekomendasi_id], references: [id])
+
+  @@index([surat_peringatan_id])
+  @@index([rekomendasi_id])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actor_id   String?
+  actor_role String?
+  action     String   // e.g. LOGIN, CREATE_LHP, TTE_SIGN_SUCCESS, CLOSE_LHP, REOPEN_LHP
+  entity     String   // Nama tabel / domain
+  entity_id  String?
+  metadata   Json?    // Safe payload / diff (no secrets/passwords/base64)
+  ip_address String?
+  user_agent String?
+  created_at DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actor_id], references: [id], onDelete: SetNull)
+
+  @@index([actor_id])
+  @@index([entity, entity_id])
+  @@index([action])
+  @@index([created_at])
+}

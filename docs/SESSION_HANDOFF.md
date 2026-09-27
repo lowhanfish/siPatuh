@@ -1,54 +1,70 @@
 # SESSION_HANDOFF
 
 ## Active checkpoint
-00 - Grounding & Persistent Context
+B05 - Authentication
 
 ## Completed in this session
-- Menelaah secara mendalam dokumen acuan: `SIPATUH_Blueprint_Petunjuk_Aplikasi.pdf` dan `SIPATUH_Prompt_Checkpoint_Codex.pdf`.
-- Menginspeksi struktur repositori aktual (`/backend` dengan starter NestJS 11, `/frontend` dengan starter Next.js 16).
-- Membentuk direktori `/docs` di root repositori sebagai sumber kebenaran persisten (*persistent context*).
-- Menulis dokumen arsitektur dan bisnis:
-  - `docs/PROJECT_CONTEXT.md`
-  - `docs/DECISIONS.md`
-  - `docs/ARCHITECTURE.md`
-  - `docs/DATA_MODEL.md`
-  - `docs/API_CONTRACT.md`
-  - `docs/EXTERNAL_SYSTEMS.md`
-  - `docs/SESSION_HANDOFF.md`
-- Mengonfirmasi fakta eksternal vs unknowns untuk SIMPEG, EGOV, dan TTE Wrapper.
-- Menetapkan batasan ketat: tidak ada write/migrasi ke database eksternal, tidak ada penyimpanan secret/passphrase, dan penegakan Irban scope di level backend.
+- **Checkpoint B05 (Authentication)**:
+  - Menginstal dependensi autentikasi `@nestjs/jwt` (^11.0.0), `bcryptjs`, dan `@types/bcryptjs`.
+  - Mengimplementasikan query verifikasi kredensial riil pada `EgovAdapter`:
+    - Pencocokan identitas via `username` atau NIP (`nama_nip`) terhadap tabel riil `egov.users`.
+    - Verifikasi hash password menggunakan algoritma **Bcrypt** (`$2a$12$`).
+    - Password polos maupun hash tidak pernah disalin atau disimpan ke database SIPATUH.
+  - Membangun `AuthService`:
+    - Validasi kredensial EGOV.
+    - Pengecekan pendaftaran dan status keaktifan user lokal SIPATUH (`is_active = true`).
+    - Menolak user EGOV yang belum diaktifkan oleh Super Admin dengan pesan informatif.
+    - Penerbitan pasangan token JWT: `access_token` (15 menit) dan `refresh_token` (7 hari).
+    - Penanganan cookie terproteksi: `httpOnly: true`, `secure: isProduction`, `sameSite: lax/strict`, `path: '/'`.
+    - Rotasi refresh token dan endpoint pembatalan sesi / pembersihan cookie (`logout`).
+  - Membangun `JwtAuthGuard`:
+    - Membaca token dari httpOnly cookie `access_token` (prioritas utama) atau fallback header `Authorization: Bearer <token>`.
+    - Memvalidasi token type `access` dan menginjeksikan identitas ke `req.user`.
+  - Membangun `AuthController` dengan endpoint RESTful `/api/v1/auth`:
+    - `POST /api/v1/auth/login`
+    - `POST /api/v1/auth/refresh`
+    - `POST /api/v1/auth/logout`
+    - `GET /api/v1/auth/me` (dilindungi `JwtAuthGuard`)
+  - Menulis unit tests komprehensif (`auth.service.spec.ts`, `egov.adapter.spec.ts`) dan e2e tests (`auth.e2e-spec.ts`).
 
 ## Files changed
-- `docs/PROJECT_CONTEXT.md`: Menguraikan latar belakang proyek, peran (SUPER_ADMIN, ADMIN_IRBAN, BUPATI), aturan bisnis utama, dan batasan cakupan V1.
-- `docs/DECISIONS.md`: Mencatat ADR-01 hingga ADR-08 terkait arsitektur multi-database, token httpOnly cookie, model non-enum LHP, dan integrasi TTE.
-- `docs/ARCHITECTURE.md`: Menyusun diagram arsitektur sistem, pembagian lapisan Next.js frontend, NestJS backend, uploads terproteksi, dan multi-database.
-- `docs/DATA_MODEL.md`: Mendefinisikan spesifikasi model Prisma untuk seluruh entitas lokal SIPATUH berserta relasi dan indeksnya.
-- `docs/API_CONTRACT.md`: Mendokumentasikan spesifikasi REST API `/api/v1` lengkap untuk otentikasi, master data, LHP, temuan, rekomendasi, tindak lanjut, verifikasi, surat peringatan, dan dashboard.
-- `docs/EXTERNAL_SYSTEMS.md`: Memetakan fakta terverifikasi dan item yang belum diketahui (*unknowns*) dari SIMPEG, EGOV, dan TTE API wrapper.
-- `docs/SESSION_HANDOFF.md`: Dokumen handoff status checkpoint saat ini dan persiapan untuk langkah berikutnya.
+- `backend/package.json` & `package-lock.json`: Menambahkan `@nestjs/jwt`, `bcryptjs`, `@types/bcryptjs`.
+- `backend/src/external/interfaces/egov.interface.ts`: Kontrak antarmuka `EgovUserRecord` dengan kolom riil EGOV.
+- `backend/src/external/egov/egov.adapter.ts`: Implementasi verifikasi Bcrypt terhadap `egov.users`.
+- `backend/src/external/egov/egov.adapter.spec.ts`: Unit test untuk `EgovAdapter`.
+- `backend/src/auth/dto/login.dto.ts`: DTO login dengan validasi class-validator.
+- `backend/src/auth/interfaces/jwt-payload.interface.ts`: Interface JwtPayload dan AuthenticatedUser.
+- `backend/src/auth/auth.service.ts`: Core auth service (login, refresh, logout, profile).
+- `backend/src/auth/auth.service.spec.ts`: Unit test untuk AuthService.
+- `backend/src/auth/guards/jwt-auth.guard.ts`: Guard autentikasi JWT cookie & bearer.
+- `backend/src/auth/auth.controller.ts`: Controller untuk endpoint auth.
+- `backend/src/auth/auth.module.ts`: Modul auth NestJS.
+- `backend/test/auth.e2e-spec.ts`: E2E test suite untuk flow auth.
+- `docs/SESSION_HANDOFF.md`: Pembaruan status handoff checkpoint B05.
 
 ## Decisions made
-- Database `egov` dan `simpeg` diperlakukan murni sebagai READ-ONLY tanpa pembuatan migrasi atau skema Prisma langsung.
-- Tidak membangun fitur bisnis baru sebelum fondasi arsitektur selesai.
-- Penegakan isolasi wilayah Irban wajib dilakukan pada backend query dengan mengambil `irban_id` dari sesi authenticated, bukan dari client payload.
+- Token disimpan murni di secure `httpOnly` cookie untuk mencegah serangan XSS di sisi frontend.
+- Kredensial password dari EGOV tidak pernah disalin, dipersist, atau dicatat ke log aplikasi SIPATUH.
+- Rotasi refresh token otomatis dilakukan pada setiap pemanggilan `POST /auth/refresh`.
 
 ## Tests / verification
-- `find_by_name /docs`: Memastikan 7 berkas dokumentasi berhasil dibuat dan terisi lengkap.
-- Inspeksi struktur package backend dan frontend berhasil dikonfirmasi.
+- `npm run lint` (backend) -> PASS (0 error, 0 warning)
+- `npm run build` (backend) -> PASS (Build NestJS sukses)
+- `npm test` (backend) -> PASS (6 test suites, 23 unit tests passed)
+- `npm run test:e2e` (backend) -> PASS (2 test suites, 6 e2e tests passed)
 
 ## Known issues / blockers
-- Tabel dan skema credential riil di database EGOV belum diinspeksi secara langsung; memerlukan koneksi read-only untuk memverifikasi nama tabel pengguna, kolom identifier, dan algoritma hash password.
-- Kolom penanda aktif/nonaktif pada `simpeg.unit_kerja` belum diketahui secara pasti; saat ini hanya berpatokan pada filter `unit_induk = 1`.
-- URL dan TOKEN produksi/staging untuk TTE API wrapper belum diatur pada environment riil.
+- Tidak ada blocker untuk B06 (RBAC & Irban Scope).
+- URL dan TOKEN produksi/staging untuk TTE API wrapper belum diatur pada environment riil (dibutuhkan nanti saat Checkpoint B17).
 
 ## External schema facts verified
-- EGOV: Database kredensial pengguna, verifikasi hash tanpa menyalin password ke SIPATUH (detail tabel akan diinspeksi di B04).
-- SIMPEG: Tabel `simpeg.instansi` (`id`), `simpeg.unit_kerja` (`id`, `unit_kerja`, `instansi`, `unit_induk = 1`).
+- EGOV: Database kredensial pengguna riil terhubung (`egov`). Tabel `users` terkonfirmasi berisi 6.417 pengguna dengan kolom `id (varchar(35))`, `username (varchar(20))`, `nama_nip (varchar(25))`, dan `password (text)` berformat Bcrypt `$2a$12$`.
+- SIMPEG: Database riil terhubung (`simpeg`). Tabel `unit_kerja` terkonfirmasi dengan kolom `id (varchar(25))`, `unit_kerja`, `instansi`, `unit_induk = 1`, dan `status = 1`.
 - TTE: Endpoint REST wrapper `lowhanfish/tte_api` menerima parameter JSON `TOKEN`, `nik`, `passphrase`, `tagTTDX`, `filebase64`, `judul`, `nomor`.
 
 ## Next checkpoint
-- B01 - Bootstrap Backend
-- Preconditions: Checkpoint 00 selesai, dokumen kontekstual di `/docs` telah siap dan konsisten.
+- B06 - RBAC & Irban Scope
+- Preconditions: Checkpoint B05 selesai, login EGOV dan token cookie httpOnly siap, build dan tests backend lulus.
 
 ## Do not forget
 - No writes to EGOV/SIMPEG
