@@ -78,6 +78,30 @@ describe('EgovAdapter', () => {
     expect((verified as Record<string, unknown>).passwordHash).toBeUndefined();
   });
 
+  it('should preserve compatibility with legacy registration trim behavior', async () => {
+    const hash = await bcrypt.hash('secret123', 12);
+
+    mockPool = {
+      query: jest.fn().mockResolvedValue([
+        [
+          {
+            id: 'usr-legacy',
+            username: 'administrator',
+            nama_nip: '198511202014061001',
+            password: hash,
+          },
+        ],
+      ]),
+    };
+    adapter.setPool(mockPool as Pool);
+
+    const verified = await adapter.verifyCredentials(
+      'administrator',
+      '  secret123  ',
+    );
+    expect(verified?.id).toBe('usr-legacy');
+  });
+
   it('should return null when password does not match', async () => {
     const hash = await bcrypt.hash('correct_password', 10);
 

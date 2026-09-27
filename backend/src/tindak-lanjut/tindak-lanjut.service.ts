@@ -82,7 +82,7 @@ export class TindakLanjutService {
       },
       include: {
         created_by_user: {
-          select: { id: true, nama: true, nip: true, role: true },
+          select: { id: true, egov_user_id: true, role: true },
         },
       },
     });
@@ -160,12 +160,14 @@ export class TindakLanjutService {
       orderBy: { tanggal_diterima: 'desc' },
       include: {
         created_by_user: {
-          select: { id: true, nama: true, nip: true, role: true },
+          select: { id: true, egov_user_id: true, role: true },
         },
         verifikasis: {
           orderBy: { verified_at: 'desc' },
           include: {
-            verifier: { select: { id: true, nama: true, nip: true } },
+            verifier: {
+              select: { id: true, egov_user_id: true, role: true },
+            },
             status_rekomendasi: true,
           },
         },
@@ -202,7 +204,7 @@ export class TindakLanjutService {
       where: { id },
       include: {
         created_by_user: {
-          select: { id: true, nama: true, nip: true, role: true },
+          select: { id: true, egov_user_id: true, role: true },
         },
         rekomendasi: {
           include: {
@@ -213,7 +215,9 @@ export class TindakLanjutService {
         },
         verifikasis: {
           include: {
-            verifier: { select: { id: true, nama: true, nip: true } },
+            verifier: {
+              select: { id: true, egov_user_id: true, role: true },
+            },
             status_rekomendasi: true,
           },
         },

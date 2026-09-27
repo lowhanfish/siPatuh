@@ -130,11 +130,15 @@ export class RekomendasiService {
         tindak_lanjuts: {
           orderBy: { tanggal_diterima: 'asc' },
           include: {
-            created_by_user: { select: { id: true, nama: true } },
+            created_by_user: {
+              select: { id: true, egov_user_id: true, role: true },
+            },
             verifikasis: {
               orderBy: { verified_at: 'desc' },
               include: {
-                verifier: { select: { id: true, nama: true } },
+                verifier: {
+                  select: { id: true, egov_user_id: true, role: true },
+                },
                 status_rekomendasi: true,
               },
             },

@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { useLogin } from "@/features/auth/hooks/use-auth";
+import { getDefaultRouteForRole } from "@/features/navigation/config/navigation";
 import { getApiErrorMessage } from "@/lib/api-client";
 
-export function LoginForm({ redirectTo }: { redirectTo: string }) {
+export function LoginForm({ redirectTo }: { redirectTo: string | null }) {
   const router = useRouter();
   const loginMutation = useLogin();
   const [identifier, setIdentifier] = useState("");
@@ -24,7 +25,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
       });
       setPassword("");
       toast.success(`Selamat datang, ${user.nama}.`);
-      router.replace(redirectTo);
+      router.replace(redirectTo ?? getDefaultRouteForRole(user.role));
       router.refresh();
     } catch (error) {
       setPassword("");

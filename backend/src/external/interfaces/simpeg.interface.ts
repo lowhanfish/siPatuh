@@ -22,7 +22,27 @@ export interface SimpegInstansi {
   nama?: string;
 }
 
+export interface SimpegBiodataProfile {
+  nip: string;
+  nama: string | null;
+  nama_lengkap: string;
+  nama_lengkap_gelar: string;
+  email: string | null;
+  unit_kerja_id: string | null;
+  unit_kerja: string | null;
+  unit_induk: number | null;
+  instansi_id: string | null;
+  instansi: string | null;
+  jabatan_id: string | null;
+  jabatan: string | null;
+}
+
 export interface ISimpegAdapter {
+  /**
+   * Mengambil biodata aktif berdasarkan NIP untuk melengkapi identitas EGOV.
+   */
+  findBiodataByNip(nip: string): Promise<SimpegBiodataProfile | null>;
+
   /**
    * Mengambil daftar Unit Kerja utama yang sah sebagai target LHP (hanya unit_induk = 1).
    */

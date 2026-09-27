@@ -7,6 +7,8 @@ import {
 import { RoleEnum, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { EgovAdapter } from '../external/egov/egov.adapter';
+import { SimpegAdapter } from '../external/simpeg/simpeg.adapter';
+import type { EgovUserRecord } from '../external/interfaces/egov.interface';
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUser } from '../auth/interfaces/jwt-payload.interface';
 import { ActivateUserDto } from './dto/activate-user.dto';
@@ -18,8 +20,41 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly egovAdapter: EgovAdapter,
+    private readonly simpegAdapter: SimpegAdapter,
     private readonly auditService: AuditService,
   ) {}
+
+  private async enrichIdentity(egovUser: EgovUserRecord) {
+    const biodata = egovUser.nip
+      ? await this.simpegAdapter.findBiodataByNip(egovUser.nip)
+      : null;
+
+    return {
+      egov_user_id: egovUser.id,
+      username: egovUser.username,
+      nip: egovUser.nip ?? null,
+      nama:
+        biodata?.nama_lengkap_gelar ||
+        biodata?.nama_lengkap ||
+        egovUser.nama ||
+        egovUser.username,
+      email: biodata?.email ?? egovUser.email ?? null,
+      unit_kerja_id: biodata?.unit_kerja_id ?? null,
+      unit_kerja: biodata?.unit_kerja ?? egovUser.unit_kerja ?? null,
+      instansi_id: biodata?.instansi_id ?? null,
+      instansi: biodata?.instansi ?? null,
+      jabatan_id: biodata?.jabatan_id ?? null,
+      jabatan: biodata?.jabatan ?? null,
+    };
+  }
+
+  private async enrichAccess<T extends { egov_user_id: string }>(access: T) {
+    const egovUser = await this.egovAdapter.findUserById(access.egov_user_id);
+    return {
+      ...access,
+      identity: egovUser ? await this.enrichIdentity(egovUser) : null,
+    };
+  }
 
   /**
    * Mencari user dari database EGOV dan menandai apakah sudah terdaftar di SIPATUH
@@ -35,7 +70,7 @@ export class UsersService {
     }
 
     const egovUserIds = egovUsers.map((u) => u.id);
-    const existingSipatuhUsers = await this.prisma.user.findMany({
+    const existingSipatuhUsers = await this.prisma.userAccess.findMany({
       where: { egov_user_id: { in: egovUserIds } },
       select: { egov_user_id: true, role: true, is_active: true },
     });
@@ -44,15 +79,15 @@ export class UsersService {
       existingSipatuhUsers.map((u) => [u.egov_user_id, u]),
     );
 
-    return egovUsers.map((u) => {
+    return Promise.all(egovUsers.map(async (u) => {
       const registered = registeredMap.get(u.id);
       return {
-        ...u,
+        ...(await this.enrichIdentity(u)),
         is_registered: !!registered,
         sipatuh_role: registered ? registered.role : null,
         sipatuh_is_active: registered ? registered.is_active : null,
       };
-    });
+    }));
   }
 
   /**
@@ -64,7 +99,7 @@ export class UsersService {
     is_active?: boolean;
     search?: string;
   }) {
-    const where: Prisma.UserWhereInput = {};
+    const where: Prisma.UserAccessWhereInput = {};
 
     if (filters?.role) {
       where.role = filters.role;
@@ -78,14 +113,7 @@ export class UsersService {
       where.is_active = filters.is_active;
     }
 
-    if (filters?.search) {
-      where.OR = [
-        { nama: { contains: filters.search } },
-        { nip: { contains: filters.search } },
-      ];
-    }
-
-    return this.prisma.user.findMany({
+    const accesses = await this.prisma.userAccess.findMany({
       where,
       include: {
         irban: {
@@ -94,24 +122,36 @@ export class UsersService {
       },
       orderBy: { created_at: 'desc' },
     });
+    const enriched = await Promise.all(
+      accesses.map((access) => this.enrichAccess(access)),
+    );
+
+    const search = filters?.search?.trim().toLocaleLowerCase('id-ID');
+    if (!search) return enriched;
+
+    return enriched.filter(({ identity }) =>
+      [identity?.username, identity?.nip, identity?.nama]
+        .filter(Boolean)
+        .some((value) => value!.toLocaleLowerCase('id-ID').includes(search)),
+    );
   }
 
   /**
    * Menampilkan detail satu user SIPATUH
    */
   async findById(id: string) {
-    const user = await this.prisma.user.findUnique({
+    const access = await this.prisma.userAccess.findUnique({
       where: { id },
       include: {
         irban: true,
       },
     });
 
-    if (!user) {
+    if (!access) {
       throw new NotFoundException(`User dengan ID ${id} tidak ditemukan`);
     }
 
-    return user;
+    return this.enrichAccess(access);
   }
 
   /**
@@ -138,7 +178,7 @@ export class UsersService {
     }
 
     // 2. Cek apakah sudah terdaftar di SIPATUH
-    const alreadyRegistered = await this.prisma.user.findUnique({
+    const alreadyRegistered = await this.prisma.userAccess.findUnique({
       where: { egov_user_id: dto.egov_user_id },
     });
     if (alreadyRegistered) {
@@ -155,12 +195,10 @@ export class UsersService {
       );
     }
 
-    // 4. Simpan ke database SIPATUH (tanpa menyalin password!)
-    const newUser = await this.prisma.user.create({
+    // 4. Simpan hak akses saja; biodata dan kredensial tetap di sistem sumber.
+    const newAccess = await this.prisma.userAccess.create({
       data: {
         egov_user_id: dto.egov_user_id,
-        nama: egovUser.nama || egovUser.username,
-        nip: egovUser.nip ?? null,
         role: dto.role,
         irban_id: dto.irban_id ?? null,
         is_active: true,
@@ -175,18 +213,16 @@ export class UsersService {
       actor_id: currentUser.id,
       actor_role: currentUser.role,
       action: 'ACTIVATE_USER',
-      entity: 'User',
-      entity_id: newUser.id,
+      entity: 'UserAccess',
+      entity_id: newAccess.id,
       metadata: {
         egov_user_id: dto.egov_user_id,
-        nama: newUser.nama,
-        nip: newUser.nip,
-        role: newUser.role,
-        irban_id: newUser.irban_id,
+        role: newAccess.role,
+        irban_id: newAccess.irban_id,
       },
     });
 
-    return newUser;
+    return this.enrichAccess(newAccess);
   }
 
   /**
@@ -197,7 +233,7 @@ export class UsersService {
     dto: UpdateUserDto,
     currentUser: AuthenticatedUser,
   ) {
-    const existing = await this.prisma.user.findUnique({ where: { id } });
+    const existing = await this.prisma.userAccess.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException(`User dengan ID ${id} tidak ditemukan`);
     }
@@ -222,7 +258,7 @@ export class UsersService {
       effectiveIrbanId = null;
     }
 
-    const updated = await this.prisma.user.update({
+    const updated = await this.prisma.userAccess.update({
       where: { id },
       data: {
         role: effectiveRole,
@@ -235,7 +271,7 @@ export class UsersService {
       actor_id: currentUser.id,
       actor_role: currentUser.role,
       action: 'UPDATE_USER_ACCESS',
-      entity: 'User',
+      entity: 'UserAccess',
       entity_id: id,
       metadata: {
         before: { role: existing.role, irban_id: existing.irban_id },
@@ -243,7 +279,7 @@ export class UsersService {
       },
     });
 
-    return updated;
+    return this.enrichAccess(updated);
   }
 
   /**
@@ -254,7 +290,7 @@ export class UsersService {
     dto: ToggleUserStatusDto,
     currentUser: AuthenticatedUser,
   ) {
-    const existing = await this.prisma.user.findUnique({ where: { id } });
+    const existing = await this.prisma.userAccess.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException(`User dengan ID ${id} tidak ditemukan`);
     }
@@ -265,7 +301,7 @@ export class UsersService {
       );
     }
 
-    const updated = await this.prisma.user.update({
+    const updated = await this.prisma.userAccess.update({
       where: { id },
       data: { is_active: dto.is_active },
       include: { irban: true },
@@ -275,7 +311,7 @@ export class UsersService {
       actor_id: currentUser.id,
       actor_role: currentUser.role,
       action: 'TOGGLE_USER_STATUS',
-      entity: 'User',
+      entity: 'UserAccess',
       entity_id: id,
       metadata: {
         is_active_before: existing.is_active,
@@ -283,6 +319,6 @@ export class UsersService {
       },
     });
 
-    return updated;
+    return this.enrichAccess(updated);
   }
 }

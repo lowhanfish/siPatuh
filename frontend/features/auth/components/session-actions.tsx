@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useLogout, useSession } from "@/features/auth/hooks/use-auth";
 import { getApiErrorMessage } from "@/lib/api-client";
 import type { UserRole } from "@/features/auth/types";
+import { getDefaultRouteForRole } from "@/features/navigation/config/navigation";
 
 const roleLabels: Record<UserRole, string> = {
   SUPER_ADMIN: "Inspektur",
@@ -52,6 +53,12 @@ export function SessionActions() {
         <p className="text-sm font-semibold text-ink">{session.data.nama}</p>
         <p className="text-xs text-muted">{roleLabels[session.data.role]}</p>
       </div>
+      <Link
+        className="button-primary hidden min-h-10 px-4 py-2 sm:inline-flex"
+        href={getDefaultRouteForRole(session.data.role)}
+      >
+        Buka aplikasi
+      </Link>
       <button
         className="rounded-xl border border-line bg-surface px-3 py-2 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand disabled:opacity-60"
         disabled={logoutMutation.isPending}

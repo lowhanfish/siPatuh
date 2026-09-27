@@ -33,8 +33,7 @@ export class IrbanService {
         users: {
           select: {
             id: true,
-            nama: true,
-            nip: true,
+            egov_user_id: true,
             role: true,
             is_active: true,
           },

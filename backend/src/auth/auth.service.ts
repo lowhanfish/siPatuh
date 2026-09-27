@@ -4,6 +4,8 @@ import { JwtService } from '@nestjs/jwt';
 import type { Response, CookieOptions } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { EgovAdapter } from '../external/egov/egov.adapter';
+import { SimpegAdapter } from '../external/simpeg/simpeg.adapter';
+import type { EgovUserRecord } from '../external/interfaces/egov.interface';
 import { LoginDto } from './dto/login.dto';
 import {
   JwtPayload,
@@ -16,10 +18,48 @@ export class AuthService {
 
   constructor(
     private readonly egovAdapter: EgovAdapter,
+    private readonly simpegAdapter: SimpegAdapter,
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
+
+  private async buildAuthenticatedUser(
+    access: {
+      id: string;
+      egov_user_id: string;
+      role: AuthenticatedUser['role'];
+      irban_id: string | null;
+    },
+    resolvedEgovUser?: EgovUserRecord,
+  ): Promise<AuthenticatedUser> {
+    const egovUser =
+      resolvedEgovUser ??
+      (await this.egovAdapter.findUserById(access.egov_user_id));
+
+    if (!egovUser) {
+      throw new UnauthorizedException(
+        'Identitas pengguna tidak lagi ditemukan di EGOV',
+      );
+    }
+
+    const biodata = egovUser.nip
+      ? await this.simpegAdapter.findBiodataByNip(egovUser.nip)
+      : null;
+
+    return {
+      id: access.id,
+      egov_user_id: access.egov_user_id,
+      role: access.role,
+      irban_id: access.irban_id,
+      nama:
+        biodata?.nama_lengkap_gelar ||
+        biodata?.nama_lengkap ||
+        egovUser.nama ||
+        egovUser.username,
+      nip: egovUser.nip ?? null,
+    };
+  }
 
   /**
    * Helper untuk konfigurasi cookie opsi aman.
@@ -107,8 +147,9 @@ export class AuthService {
   /**
    * Alur login utama:
    * 1. Validasi kredensial (NIP/Username + Password) ke database EGOV via EgovAdapter.
-   * 2. Periksa apakah user terdaftar dan aktif di database SIPATUH (User).
-   * 3. Terbitkan token dan pasang httpOnly cookie.
+   * 2. Periksa apakah hak akses pengguna aktif di database SIPATUH.
+   * 3. Ambil biodata profil dari SIMPEG tanpa menyalinnya ke SIPATUH.
+   * 4. Terbitkan token dan pasang httpOnly cookie.
    */
   async login(
     dto: LoginDto,
@@ -127,19 +168,14 @@ export class AuthService {
     }
 
     // 2. Cek pendaftaran dan keaktifan akun di SIPATUH
-    const localUser = await this.prisma.user.findFirst({
-      where: {
-        OR: [
-          { egov_user_id: egovUser.id },
-          ...(egovUser.nip ? [{ nip: egovUser.nip }] : []),
-        ],
-      },
+    const localAccess = await this.prisma.userAccess.findUnique({
+      where: { egov_user_id: egovUser.id },
       include: {
         irban: true,
       },
     });
 
-    if (!localUser) {
+    if (!localAccess) {
       this.logger.warn(
         `Login ditolak: Akun EGOV ${egovUser.username} (${egovUser.id}) belum diaktifkan di SIPATUH.`,
       );
@@ -148,20 +184,16 @@ export class AuthService {
       );
     }
 
-    if (!localUser.is_active) {
+    if (!localAccess.is_active) {
       throw new UnauthorizedException(
         'Akun Anda telah dinonaktifkan di SIPATUH. Hubungi Administrator.',
       );
     }
 
-    const authenticatedUser: AuthenticatedUser = {
-      id: localUser.id,
-      egov_user_id: localUser.egov_user_id,
-      role: localUser.role,
-      irban_id: localUser.irban_id,
-      nama: localUser.nama,
-      nip: localUser.nip,
-    };
+    const authenticatedUser = await this.buildAuthenticatedUser(
+      localAccess,
+      egovUser,
+    );
 
     // 3. Terbitkan token & set cookie
     const { accessToken, refreshToken } =
@@ -202,23 +234,16 @@ export class AuthService {
     }
 
     // Pastikan user masih ada dan aktif di SIPATUH
-    const localUser = await this.prisma.user.findUnique({
+    const localAccess = await this.prisma.userAccess.findUnique({
       where: { id: payload.sub },
     });
 
-    if (!localUser || !localUser.is_active) {
+    if (!localAccess || !localAccess.is_active) {
       this.clearAuthCookies(res);
       throw new UnauthorizedException('Pengguna tidak aktif');
     }
 
-    const authenticatedUser: AuthenticatedUser = {
-      id: localUser.id,
-      egov_user_id: localUser.egov_user_id,
-      role: localUser.role,
-      irban_id: localUser.irban_id,
-      nama: localUser.nama,
-      nip: localUser.nip,
-    };
+    const authenticatedUser = await this.buildAuthenticatedUser(localAccess);
 
     // Rotasi token: terbitkan token baru
     const { accessToken, refreshToken: newRefreshToken } =
@@ -239,7 +264,7 @@ export class AuthService {
    * Mengambil data profil pengguna berdasarkan user id.
    */
   async getProfile(userId: string) {
-    const user = await this.prisma.user.findUnique({
+    const access = await this.prisma.userAccess.findUnique({
       where: { id: userId },
       include: {
         irban: {
@@ -252,21 +277,17 @@ export class AuthService {
       },
     });
 
-    if (!user || !user.is_active) {
+    if (!access || !access.is_active) {
       throw new UnauthorizedException(
         'Pengguna tidak ditemukan atau tidak aktif',
       );
     }
 
+    const authenticatedUser = await this.buildAuthenticatedUser(access);
     return {
-      id: user.id,
-      egov_user_id: user.egov_user_id,
-      nip: user.nip,
-      nama: user.nama,
-      role: user.role,
-      irban_id: user.irban_id,
-      irban: user.irban,
-      is_active: user.is_active,
+      ...authenticatedUser,
+      irban: access.irban,
+      is_active: access.is_active,
     };
   }
 }

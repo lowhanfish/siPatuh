@@ -1,7 +1,7 @@
 import { RoleEnum } from '@prisma/client';
 
 export interface JwtPayload {
-  sub: string; // SIPATUH local User.id
+  sub: string; // SIPATUH local UserAccess.id
   egov_user_id: string;
   role: RoleEnum;
   irban_id: string | null;

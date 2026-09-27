@@ -22,7 +22,7 @@ export default function Home() {
 
         <section className="grid flex-1 items-center gap-12 py-16 lg:grid-cols-[1.15fr_0.85fr] lg:py-20">
           <div className="max-w-3xl">
-            <p className="eyebrow">Checkpoint F01 · Frontend Foundation</p>
+            <p className="eyebrow">SIPATUH · Sistem Pengawasan Internal</p>
             <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-[-0.04em] text-ink sm:text-5xl lg:text-6xl">
               Pemantauan tindak lanjut yang tertib, terukur, dan dapat ditelusuri.
             </h1>
@@ -35,7 +35,7 @@ export default function Home() {
             <div className="mt-9 flex flex-wrap gap-3 text-sm">
               <span className="info-chip">Next.js App Router</span>
               <span className="info-chip">TypeScript strict</span>
-              <span className="info-chip">Responsive tokens</span>
+              <span className="info-chip">Role-based navigation</span>
             </div>
           </div>
 
@@ -64,11 +64,11 @@ export default function Home() {
             <div>
               <p className="eyebrow">Arsitektur klien</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-tight text-ink" id="foundation-title">
-                Siap dilanjutkan ke autentikasi
+                Fondasi aplikasi siap digunakan
               </h2>
             </div>
             <p className="hidden max-w-sm text-right text-sm leading-6 text-muted md:block">
-              Fitur login dan refresh otomatis sengaja dikerjakan pada F02.
+              Autentikasi cookie, auto-refresh, dan app shell responsif telah aktif.
             </p>
           </div>
           <FoundationOverview />

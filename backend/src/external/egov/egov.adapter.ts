@@ -211,13 +211,24 @@ export class EgovAdapter implements IEgovAdapter, OnModuleDestroy {
     }
 
     const user = await this.findUserByIdentifier(identifier);
-    if (!user || !user.passwordHash) {
+    if (!user) {
+      this.logger.warn('EGOV login ditolak: identifier tidak ditemukan');
+      return null;
+    }
+    if (!user.passwordHash) {
+      this.logger.warn('EGOV login ditolak: hash password kosong');
       return null;
     }
 
     try {
-      const isMatch = await bcrypt.compare(plainPassword, user.passwordHash);
+      // Registrasi Express lama menyimpan hash dari password.trim().
+      // Normalisasi yang sama diperlukan agar kredensial lama tetap kompatibel.
+      const isMatch = await bcrypt.compare(
+        plainPassword.trim(),
+        user.passwordHash,
+      );
       if (!isMatch) {
+        this.logger.warn('EGOV login ditolak: bcrypt hash tidak cocok');
         return null;
       }
 

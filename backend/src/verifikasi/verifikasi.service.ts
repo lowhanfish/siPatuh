@@ -97,7 +97,7 @@ export class VerifikasiService {
         },
         include: {
           verifier: {
-            select: { id: true, nama: true, nip: true, role: true },
+            select: { id: true, egov_user_id: true, role: true },
           },
           status_rekomendasi: true,
         },
@@ -182,7 +182,7 @@ export class VerifikasiService {
       orderBy: { verified_at: 'desc' },
       include: {
         verifier: {
-          select: { id: true, nama: true, nip: true, role: true },
+          select: { id: true, egov_user_id: true, role: true },
         },
         status_rekomendasi: true,
       },

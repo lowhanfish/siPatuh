@@ -249,7 +249,7 @@ export class LhpService {
         irban: true,
         jenis_pemeriksaan: true,
         closed_by_user: {
-          select: { id: true, nama: true, nip: true },
+          select: { id: true, egov_user_id: true, role: true },
         },
         temuans: {
           orderBy: { nomor_urut: 'asc' },
@@ -560,7 +560,9 @@ export class LhpService {
         closed_by: currentUser.id,
       },
       include: {
-        closed_by_user: { select: { id: true, nama: true, nip: true } },
+        closed_by_user: {
+          select: { id: true, egov_user_id: true, role: true },
+        },
       },
     });
 

@@ -12,7 +12,7 @@ const foundations = [
   {
     label: "Session",
     value: "httpOnly cookie",
-    detail: "Fondasi siap untuk auth client pada F02.",
+    detail: "Guard sesi dan navigasi role aktif tanpa menyimpan JWT.",
   },
 ];
 

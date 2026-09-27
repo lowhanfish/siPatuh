@@ -232,7 +232,7 @@ Seluruh endpoint backend menggunakan basis URL `/api/v1` dan mengembalikan respo
   * Menampilkan:
     * Kartu statistik (LHP, Temuan, Rekomendasi, Penyelesaian %, Rasio Pemulihan Kerugian Finansial).
     * Distribusi status rekomendasi.
-    * Peringatan SP Due (daftar LHP yang melewati batas 60/90/120 hari kalender).
+    * Peringatan SP Due (daftar LHP yang melewati batas SP1/SP2/SP3 pada 30/45/60 hari kalender).
     * Aktivitas tindak lanjut dan verifikasi terbaru.
   * *Catatan Keamanan*: Peran `BUPATI` dilarang mengakses rute ini (`403 Forbidden`).
 * `GET /api/v1/dashboard/pimpinan` (BUPATI, SUPER_ADMIN)
@@ -254,5 +254,4 @@ Seluruh endpoint backend menggunakan basis URL `/api/v1` dan mengembalikan respo
   * Nilai rahasia (kata sandi, token JWT/TTE, passphrase, NIK lengkap) disanitasi dan tidak pernah dibocorkan ke log sistem.
 * **Strict Read-Only External DBs**:
   * Database `egov` dan `simpeg` hanya dibaca melalui MySQL connection pool terisolasi tanpa hak akses DDL/DML.
-
 

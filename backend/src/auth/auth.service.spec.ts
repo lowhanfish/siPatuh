@@ -4,12 +4,13 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { EgovAdapter } from '../external/egov/egov.adapter';
+import { SimpegAdapter } from '../external/simpeg/simpeg.adapter';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoleEnum } from '@prisma/client';
 import { Response } from 'express';
 
 interface MockPrismaService {
-  user: {
+  userAccess: {
     findFirst: jest.Mock;
     findUnique: jest.Mock;
   };
@@ -18,6 +19,7 @@ interface MockPrismaService {
 describe('AuthService', () => {
   let service: AuthService;
   let mockEgovAdapter: Partial<EgovAdapter>;
+  let mockSimpegAdapter: Partial<SimpegAdapter>;
   let mockPrisma: MockPrismaService;
   let jwtService: JwtService;
   let mockConfigService: Partial<ConfigService>;
@@ -26,10 +28,14 @@ describe('AuthService', () => {
   beforeEach(async () => {
     mockEgovAdapter = {
       verifyCredentials: jest.fn(),
+      findUserById: jest.fn(),
+    };
+    mockSimpegAdapter = {
+      findBiodataByNip: jest.fn().mockResolvedValue(null),
     };
 
     mockPrisma = {
-      user: {
+      userAccess: {
         findFirst: jest.fn(),
         findUnique: jest.fn(),
       },
@@ -56,6 +62,7 @@ describe('AuthService', () => {
         AuthService,
         JwtService,
         { provide: EgovAdapter, useValue: mockEgovAdapter },
+        { provide: SimpegAdapter, useValue: mockSimpegAdapter },
         { provide: PrismaService, useValue: mockPrisma },
         { provide: ConfigService, useValue: mockConfigService },
       ],
@@ -90,7 +97,7 @@ describe('AuthService', () => {
         irban_id: 'irban-1',
         is_active: true,
       };
-      mockPrisma.user.findFirst.mockResolvedValue(localUser);
+      mockPrisma.userAccess.findUnique.mockResolvedValue(localUser);
 
       const result = await service.login(
         { identifier: 'admin1', password: 'valid_password' },
@@ -132,7 +139,7 @@ describe('AuthService', () => {
       (mockEgovAdapter.verifyCredentials as jest.Mock).mockResolvedValue(
         egovUser,
       );
-      mockPrisma.user.findFirst.mockResolvedValue(null);
+      mockPrisma.userAccess.findUnique.mockResolvedValue(null);
 
       await expect(
         service.login(
@@ -151,7 +158,7 @@ describe('AuthService', () => {
       (mockEgovAdapter.verifyCredentials as jest.Mock).mockResolvedValue(
         egovUser,
       );
-      mockPrisma.user.findFirst.mockResolvedValue({
+      mockPrisma.userAccess.findUnique.mockResolvedValue({
         id: 'local-002',
         egov_user_id: 'egov-002',
         is_active: false,
@@ -182,14 +189,18 @@ describe('AuthService', () => {
         secret: 'test_jwt_refresh_secret_1234567890',
       });
 
-      mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.userAccess.findUnique.mockResolvedValue({
         id: 'sipatuh-user-001',
         egov_user_id: 'egov-001',
         role: RoleEnum.SUPER_ADMIN,
         irban_id: null,
-        nama: 'Inspektur',
-        nip: '197001011990011001',
         is_active: true,
+      });
+      (mockEgovAdapter.findUserById as jest.Mock).mockResolvedValue({
+        id: 'egov-001',
+        username: 'inspektur',
+        nip: '197001011990011001',
+        nama: 'Inspektur',
       });
 
       const result = await service.refresh(

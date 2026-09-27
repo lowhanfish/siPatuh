@@ -40,23 +40,21 @@ enum SpLevelEnum {
   SP3
 }
 
-model User {
-  id           String    @id @default(uuid())
-  egov_user_id String    @unique // Referensi scalar ke database EGOV
-  nip          String?   // Snapshot NIP untuk kemudahan referensi
-  nama         String
+model UserAccess {
+  id           String   @id @default(uuid())
+  egov_user_id String   @unique // Referensi scalar ke database EGOV
   role         RoleEnum
-  irban_id     String?   // Wajib diisi jika role = ADMIN_IRBAN
-  is_active    Boolean   @default(true)
-  created_at   DateTime  @default(now())
-  updated_at   DateTime  @updatedAt
+  irban_id     String? // Wajib diisi jika role = ADMIN_IRBAN
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
 
-  irban               Irban?            @relation(fields: [irban_id], references: [id])
-  closed_lhps         Lhp[]             @relation("LhpClosedBy")
-  tindak_lanjuts      TindakLanjut[]    @relation("TindakLanjutCreatedBy")
-  verifikasis         Verifikasi[]      @relation("VerifikasiVerifiedBy")
-  signed_surats       SuratPeringatan[] @relation("SuratSignedBy")
-  audit_logs          AuditLog[]        @relation("AuditActor")
+  irban          Irban?            @relation(fields: [irban_id], references: [id])
+  closed_lhps    Lhp[]             @relation("LhpClosedBy")
+  tindak_lanjuts TindakLanjut[]    @relation("TindakLanjutCreatedBy")
+  verifikasis    Verifikasi[]      @relation("VerifikasiVerifiedBy")
+  signed_surats  SuratPeringatan[] @relation("SuratSignedBy")
+  audit_logs     AuditLog[]        @relation("AuditActor")
 
   @@index([role])
   @@index([irban_id])
@@ -65,13 +63,13 @@ model User {
 model Irban {
   id         String   @id @default(uuid())
   kode       String   @unique // IRBAN_1 s/d IRBAN_5
-  nama       String   // Nama Irban Wilayah I - V
+  nama       String // Nama Irban Wilayah I - V
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  users            User[]
-  unit_kerja_maps  IrbanUnitKerja[]
-  lhps             Lhp[]
+  users           UserAccess[]
+  unit_kerja_maps IrbanUnitKerja[]
+  lhps            Lhp[]
 }
 
 model IrbanUnitKerja {
@@ -88,7 +86,7 @@ model IrbanUnitKerja {
 
 model PejabatUnitKerja {
   id                   String        @id @default(uuid())
-  simpeg_unit_kerja_id String        // Referensi scalar ke SIMPEG (varchar(25))
+  simpeg_unit_kerja_id String // Referensi scalar ke SIMPEG (varchar(25))
   nip                  String
   nama                 String
   jabatan              String
@@ -132,7 +130,7 @@ model StatusRekomendasi {
 
 model SuratTemplate {
   id          String   @id @default(uuid())
-  jenis_surat String   // SP1, SP2, SP3
+  jenis_surat String // SP1, SP2, SP3
   judul       String
   konten_html String   @db.Text
   versi       Int      @default(1)
@@ -147,22 +145,22 @@ model Lhp {
   id                          String    @id @default(uuid())
   nomor_lhp                   String    @unique
   tanggal_lhp                 DateTime
-  tanggal_diterima_lhp        DateTime  // Basis countdown surat peringatan
+  tanggal_diterima_lhp        DateTime // Basis countdown surat peringatan
   tanggal_mulai_pemeriksaan   DateTime?
   tanggal_selesai_pemeriksaan DateTime?
-  simpeg_unit_kerja_id        String    // Target pemeriksaan (varchar(25) di SIMPEG)
-  irban_id                    String    // Snapshot kepemilikan Irban saat LHP dibuat
+  simpeg_unit_kerja_id        String // Target pemeriksaan (varchar(25) di SIMPEG)
+  irban_id                    String // Snapshot kepemilikan Irban saat LHP dibuat
   jenis_pemeriksaan_id        String
-  file_path                   String?   // Path relatif di uploads/lhp
+  file_path                   String? // Path relatif di uploads/lhp
   closed_at                   DateTime? // Timestamp penutupan manual
-  closed_by                   String?   // User yang menandai selesai
+  closed_by                   String? // User yang menandai selesai
   reopen_reason               String?   @db.Text
   created_at                  DateTime  @default(now())
   updated_at                  DateTime  @updatedAt
 
   irban             Irban             @relation(fields: [irban_id], references: [id])
   jenis_pemeriksaan JenisPemeriksaan  @relation(fields: [jenis_pemeriksaan_id], references: [id])
-  closed_by_user    User?             @relation("LhpClosedBy", fields: [closed_by], references: [id])
+  closed_by_user    UserAccess?       @relation("LhpClosedBy", fields: [closed_by], references: [id])
   temuans           Temuan[]
   surat_peringatans SuratPeringatan[]
 
@@ -176,7 +174,7 @@ model Lhp {
 model Temuan {
   id           String   @id @default(uuid())
   lhp_id       String
-  nomor_urut   Int      // Nomor urut dalam satu LHP (1..n)
+  nomor_urut   Int // Nomor urut dalam satu LHP (1..n)
   judul        String
   uraian       String   @db.Text
   nilai_temuan Decimal? @db.Decimal(15, 2)
@@ -193,15 +191,15 @@ model Temuan {
 model Rekomendasi {
   id                    String   @id @default(uuid())
   temuan_id             String
-  nomor_urut            Int      // Nomor urut dalam satu Temuan (1..n)
+  nomor_urut            Int // Nomor urut dalam satu Temuan (1..n)
   uraian                String   @db.Text
   nilai_rekomendasi     Decimal? @db.Decimal(15, 2)
   status_rekomendasi_id String
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
 
-  temuan                 Temuan                 @relation(fields: [temuan_id], references: [id], onDelete: Cascade)
-  status_rekomendasi     StatusRekomendasi      @relation(fields: [status_rekomendasi_id], references: [id])
+  temuan                 Temuan                @relation(fields: [temuan_id], references: [id], onDelete: Cascade)
+  status_rekomendasi     StatusRekomendasi     @relation(fields: [status_rekomendasi_id], references: [id])
   tindak_lanjuts         TindakLanjut[]
   surat_peringatan_items SuratPeringatanItem[]
 
@@ -221,7 +219,7 @@ model TindakLanjut {
   updated_at          DateTime @updatedAt
 
   rekomendasi     Rekomendasi  @relation(fields: [rekomendasi_id], references: [id], onDelete: Cascade)
-  created_by_user User         @relation("TindakLanjutCreatedBy", fields: [created_by], references: [id])
+  created_by_user UserAccess   @relation("TindakLanjutCreatedBy", fields: [created_by], references: [id])
   verifikasis     Verifikasi[]
 
   @@index([rekomendasi_id])
@@ -233,14 +231,14 @@ model Verifikasi {
   id                    String   @id @default(uuid())
   tindak_lanjut_id      String
   catatan               String   @db.Text // Wajib
-  status_rekomendasi_id String   // Status hasil keputusan verifikasi
+  status_rekomendasi_id String // Status hasil keputusan verifikasi
   verifier_id           String
   verified_at           DateTime @default(now())
   created_at            DateTime @default(now())
 
   tindak_lanjut      TindakLanjut      @relation(fields: [tindak_lanjut_id], references: [id], onDelete: Cascade)
   status_rekomendasi StatusRekomendasi @relation(fields: [status_rekomendasi_id], references: [id])
-  verifier           User              @relation("VerifikasiVerifiedBy", fields: [verifier_id], references: [id])
+  verifier           UserAccess        @relation("VerifikasiVerifiedBy", fields: [verifier_id], references: [id])
 
   @@index([tindak_lanjut_id])
   @@index([status_rekomendasi_id])
@@ -250,10 +248,10 @@ model Verifikasi {
 model Attachment {
   id            String             @id @default(uuid())
   owner_type    AttachmentTypeEnum // LHP, TINDAK_LANJUT, VERIFIKASI
-  owner_id      String             // ID dari entitas pemilik
+  owner_id      String // ID dari entitas pemilik
   original_name String
   stored_name   String             @unique
-  file_path     String             // Relatif terhadap uploads/
+  file_path     String // Relatif terhadap uploads/
   mime_type     String
   file_size     Int
   created_at    DateTime           @default(now())
@@ -267,10 +265,10 @@ model SuratPeringatan {
   level                SpLevelEnum // SP1, SP2, SP3
   nomor_surat          String      @unique // Wajib unik
   tanggal_surat        DateTime
-  simpeg_unit_kerja_id String      // varchar(25) di SIMPEG
-  recipient_nip        String      // Snapshot NIP pejabat saat surat dibuat
-  recipient_nama       String      // Snapshot nama pejabat
-  recipient_jabatan    String      // Snapshot jabatan
+  simpeg_unit_kerja_id String // varchar(25) di SIMPEG
+  recipient_nip        String // Snapshot NIP pejabat saat surat dibuat
+  recipient_nama       String // Snapshot nama pejabat
+  recipient_jabatan    String // Snapshot jabatan
   template_version     Int         @default(1)
   draft_path           String?
   signed_path          String?
@@ -280,7 +278,7 @@ model SuratPeringatan {
   updated_at           DateTime    @updatedAt
 
   lhp            Lhp                   @relation(fields: [lhp_id], references: [id], onDelete: Cascade)
-  signed_by_user User?                 @relation("SuratSignedBy", fields: [signed_by], references: [id])
+  signed_by_user UserAccess?           @relation("SuratSignedBy", fields: [signed_by], references: [id])
   items          SuratPeringatanItem[]
 
   @@unique([lhp_id, level]) // Maksimal 1 surat per level per LHP
@@ -308,15 +306,15 @@ model AuditLog {
   id         String   @id @default(uuid())
   actor_id   String?
   actor_role String?
-  action     String   // e.g. LOGIN, CREATE_LHP, TTE_SIGN_SUCCESS, CLOSE_LHP, REOPEN_LHP
-  entity     String   // Nama tabel / domain
+  action     String // e.g. LOGIN, CREATE_LHP, TTE_SIGN_SUCCESS, CLOSE_LHP, REOPEN_LHP
+  entity     String // Nama tabel / domain
   entity_id  String?
-  metadata   Json?    // Safe payload / diff (no secrets/passwords/base64)
+  metadata   Json? // Safe payload / diff (no secrets/passwords/base64)
   ip_address String?
   user_agent String?
   created_at DateTime @default(now())
 
-  actor User? @relation("AuditActor", fields: [actor_id], references: [id], onDelete: SetNull)
+  actor UserAccess? @relation("AuditActor", fields: [actor_id], references: [id], onDelete: SetNull)
 
   @@index([actor_id])
   @@index([entity, entity_id])

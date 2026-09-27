@@ -14,7 +14,9 @@ type LoginPageProps = {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const requestedRedirect = Array.isArray(params.next) ? params.next[0] : params.next;
-  const redirectTo = getSafeRedirect(requestedRedirect);
+  const redirectTo = requestedRedirect
+    ? getSafeRedirect(requestedRedirect, "") || null
+    : null;
 
   return (
     <main className="relative grid min-h-screen place-items-center overflow-hidden bg-canvas px-5 py-10">

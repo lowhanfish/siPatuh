@@ -1,9 +1,17 @@
 # SESSION_HANDOFF
 
 ## Active checkpoint
-F02 - Auth Client & Refresh Wrapper (Completed) -> Next: F03 - App Shell & Role Routes
+F03 - App Shell & Role Routes (Completed) -> Next: F04 - Dashboard Admin Irban
 
 ## Completed in this session
+- **Checkpoint F03 (App Shell & Role Routes)**:
+  - Menambahkan app shell responsif dengan sidebar desktop, header sticky, drawer mobile, identitas pengguna, dan aksi logout.
+  - Menyusun konfigurasi navigasi terpusat berdasarkan role. `BUPATI` hanya melihat Dashboard Pimpinan dan Laporan; `ADMIN_IRBAN` hanya melihat modul operasional sesuai scope; `SUPER_ADMIN` melihat seluruh menu administrasi.
+  - Menambahkan client-side route guard berbasis query `/auth/me`: sesi tidak valid diarahkan ke login, sedangkan akses route yang tidak sesuai role menampilkan halaman `403` yang jelas.
+  - Mempertahankan backend sebagai otoritas akhir autentikasi, otorisasi role, dan scope Irban; guard frontend hanya meningkatkan UX.
+  - Menambahkan default route pascalogin per role dan placeholder route eksplisit untuk checkpoint domain berikutnya tanpa mengklaim fitur bisnis sudah selesai.
+  - Menambahkan fallback error pada area terproteksi serta mempertahankan halaman `404` global.
+
 - **Checkpoint F02 (Auth Client & Refresh Wrapper)**:
   - Menambahkan typed fetch client yang selalu memakai `credentials: "include"`, menormalisasi error backend, dan hanya menerima path API internal.
   - Implementasi single-flight refresh: request paralel yang menerima `401` berbagi satu request `/auth/refresh`, lalu masing-masing mengulang request awal tepat satu kali.
@@ -184,6 +192,12 @@ F02 - Auth Client & Refresh Wrapper (Completed) -> Next: F03 - App Shell & Role 
   - Unit tests lulus (`lhp.service.spec.ts`).
 
 ## Files changed
+- `frontend/features/navigation/`: Konfigurasi menu/akses role, app shell responsif, loading state, halaman 403, protected guard, redirect dashboard, dan placeholder fitur.
+- `frontend/app/(protected)/`: Layout terproteksi dan route awal untuk dashboard, LHP, surat peringatan, laporan, pengguna, unit kerja, serta master data.
+- `frontend/features/auth/components/` & `frontend/app/login/page.tsx`: Redirect pascalogin kini mengikuti default route role dan tautan masuk aplikasi memakai tujuan yang sama.
+- `frontend/app/page.tsx`, `frontend/features/foundation/`, dan `frontend/app/globals.css`: Copy status checkpoint dan token warna sidebar diselaraskan dengan app shell.
+- `frontend/tests/navigation.test.ts`: Unit test visibilitas menu, akses route paling spesifik, dan default dashboard per role.
+- `frontend/package.json` & `frontend/package-lock.json`: Menambahkan `lucide-react` untuk ikon navigasi.
 - `frontend/lib/api-client.ts`: Fetch wrapper cookie-based, typed error, one-time retry, dan single-flight refresh.
 - `frontend/features/auth/`: API auth, type user/role, hooks TanStack Query, login form, session actions, dan safe redirect.
 - `frontend/app/login/page.tsx`: Halaman login SIPATUH.
@@ -216,8 +230,12 @@ F02 - Auth Client & Refresh Wrapper (Completed) -> Next: F03 - App Shell & Role 
 - `docs/API_CONTRACT.md`: Update rincian API contract untuk rute TTE, Reports, Dashboard, dan Hardening.
 
 ## Decisions made
+- Route guard F03 bersifat client-side untuk UX; setiap endpoint backend tetap wajib menegakkan autentikasi, role, dan scope.
+- `BUPATI` secara eksplisit hanya memiliki dua menu: Dashboard Pimpinan dan Laporan.
+- Default route `SUPER_ADMIN` dan `BUPATI` adalah `/dashboard/pimpinan`; default route `ADMIN_IRBAN` adalah `/dashboard/irban`.
+- Route domain pada F03 hanya placeholder berlabel checkpoint berikutnya; implementasi dashboard dan modul bisnis dimulai pada F04 dan checkpoint terkait.
 - Fetch wrapper menggunakan native `fetch`, bukan Axios, agar sesuai arsitektur repo dan tidak menambah lapisan interceptor. Refresh concurrency dikendalikan oleh satu promise pada level module.
-- Redirect pascalogin default ke `/` selama app shell dan role routes belum tersedia; route tujuan berbasis role dikerjakan pada F03.
+- Redirect pascalogin menggunakan route default berbasis role, kecuali parameter `next` internal yang aman tersedia.
 - Profil sesi hanya disimpan sebagai cache in-memory TanStack Query. Browser hanya memegang cookie `httpOnly` yang dikelola backend.
 - Logout membersihkan cache sesi lokal setelah backend berhasil menghapus cookie, tanpa melakukan refetch `/auth/me` yang tidak diperlukan.
 - Frontend melanjutkan versi repo aktual Next.js 16, bukan menurunkan versi ke Next.js 14 yang tercantum pada handoff lama. `docs/ARCHITECTURE.md` juga sudah menetapkan Next.js 16.
@@ -237,11 +255,13 @@ F02 - Auth Client & Refresh Wrapper (Completed) -> Next: F03 - App Shell & Role 
 - Role `BUPATI` dibatasi secara ketat hanya pada pembacaan dasbor pimpinan (`/dashboard/pimpinan`) dan laporan agregasi (`/reports`); akses ke dasbor operasional Irban langsung ditolak (`403 Forbidden`).
 
 ## Tests / verification
-- `npm test` (frontend) -> PASS (8 tests: credentials, refresh retry, concurrent single-flight, loop prevention, auth refresh bypass, safe redirect)
+- `npm test` (frontend) -> PASS (12 tests: auth client/refresh, safe redirect, visibilitas menu, akses route, dan default route role)
 - `npm audit --omit=optional` (frontend) -> PASS (0 vulnerability setelah mengganti test runner rentan dengan `tsx`)
 - Visual QA `/login?next=/laporan?tahun=2026` -> PASS (form, hierarchy, focus, spacing, dan metadata title ter-render benar)
 - `npm run lint` (frontend) -> PASS (0 error, 0 warning)
 - `npm run build` (frontend) -> PASS (Next.js production build dan TypeScript berhasil)
+- `npm run build -- --webpack` dengan API mock lokal (frontend) -> PASS; fallback webpack dipakai untuk QA karena sandbox menolak port proses internal Turbopack.
+- Visual QA app shell -> PASS: desktop Bupati hanya menampilkan Dashboard Pimpinan dan Laporan, akses langsung `/lhp` menampilkan 403, serta drawer mobile 390x844 terbuka dan dapat digunakan.
 - Visual QA `http://localhost:3010` -> PASS (desktop render, hierarchy, spacing, dan content flow terbaca tanpa overlap)
 - `npm run lint` (backend) -> PASS (0 error, 0 warning)
 - `npm run build` (backend) -> PASS (NestJS production build berhasil tanpa error)
@@ -249,10 +269,10 @@ F02 - Auth Client & Refresh Wrapper (Completed) -> Next: F03 - App Shell & Role 
 - `npm run test:e2e` (backend) -> PASS (3 test suites, 13 e2e tests passed 100%)
 
 ## Known issues / blockers
-- Tidak ada blocker untuk melanjutkan ke F03.
+- Tidak ada blocker untuk melanjutkan ke F04.
 - Instalasi dependency menampilkan peringatan engine: Node lokal `20.10.0`, sedangkan salah satu dependency lint meminta minimal `20.19.0`. Lint dan build tetap lulus; upgrade Node ke versi LTS yang memenuhi constraint disarankan sebelum CI/deployment.
 - Login menggunakan akun EGOV nyata belum dieksekusi karena checkpoint ini tidak menggunakan kredensial pengguna atau memodifikasi external database. Kontrak dan perilaku client diverifikasi melalui controller backend, unit test, build, dan visual QA.
-- Seluruh backend checkpoints (B01 s.d. B20) serta F01-F02 telah selesai.
+- Seluruh backend checkpoints (B01 s.d. B20) serta F01-F03 telah selesai.
 
 ## External schema facts verified
 - EGOV: Read-only `egov.users` (username, nama_nip, email, unit_kerja).
@@ -260,9 +280,9 @@ F02 - Auth Client & Refresh Wrapper (Completed) -> Next: F03 - App Shell & Role 
 - Database SIPATUH: Prisma client in sync, seed master data Irban, Jenis Pemeriksaan, Status Rekomendasi, dan Template Surat aktif.
 
 ## Next checkpoint
-- **F03 - App Shell & Role Routes**
-- Implementasi layout aplikasi, navigasi responsif, route guard, serta pembatasan menu/route berdasarkan `SUPER_ADMIN`, `ADMIN_IRBAN`, dan `BUPATI`.
-- Preconditions terpenuhi: session query, login/logout, safe redirect, dan refresh wrapper sudah tersedia.
+- **F04 - Dashboard Admin Irban**
+- Implementasi dashboard operasional Admin Irban menggunakan endpoint `/api/v1/dashboard/irban`, termasuk kartu statistik, distribusi status rekomendasi, peringatan SP Due, dan aktivitas terbaru.
+- Preconditions terpenuhi: app shell, role route guard, session query, dan endpoint backend dashboard sudah tersedia.
 
 ## Do not forget
 - No writes to EGOV/SIMPEG
