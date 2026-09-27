@@ -1,9 +1,22 @@
 # SESSION_HANDOFF
 
 ## Active checkpoint
-F03 - App Shell & Role Routes (Completed) -> Next: F04 - Dashboard Admin Irban
+F04 - Dashboard Admin Irban (Completed) -> Next: F05 - User/Irban Management UI
 
 ## Completed in this session
+- **Checkpoint F04 (Dashboard Admin Irban)**:
+  - Mengintegrasikan halaman `/dashboard/irban` dengan endpoint `GET /api/v1/dashboard/irban` menggunakan TanStack Query.
+  - Menampilkan 4 kartu statistik utama:
+    - Total LHP dengan rincian open vs ditandai selesai dan akumulasi temuan.
+    - Status Rekomendasi (selesai vs belum selesai) dilengkapi bar visual persentase penyelesaian.
+    - Peringatan Surat Peringatan (SP Due) dengan indikator jatuh tempo SP1, SP2, dan SP3.
+    - Nilai Pemulihan Kerugian Finansial Daerah (total rekomendasi, realisasi setor, dan sisa kewajiban terformat Rupiah).
+  - Menampilkan kartu distribusi status rekomendasi secara dinamis dari API (`status_breakdown`), tanpa pernah meng-hardcode 4 status master sebagai satu-satunya kemungkinan di kode.
+  - Menampilkan widget alert LHP yang menunggak SP beserta perhitungan hari kalender murni sejak LHP diterima dan badge level SP (SP1 $\ge 30$, SP2 $\ge 45$, SP3 $\ge 60$ hari).
+  - Menampilkan tabel LHP terkini wilayah kerja Irban dengan status dan link aksi cepat.
+  - Menyediakan filter tahun pengawasan (default tahun berjalan), tombol segarkan data real-time, loading skeleton (`IrbanDashboardSkeleton`), serta penanganan error dengan aksi coba lagi.
+  - Memastikan angka statistik murni berasal dari kalkulasi backend, bukan komputasi parsial di client-side.
+
 - **Checkpoint F03 (App Shell & Role Routes)**:
   - Menambahkan app shell responsif dengan sidebar desktop, header sticky, drawer mobile, identitas pengguna, dan aksi logout.
   - Menyusun konfigurasi navigasi terpusat berdasarkan role. `BUPATI` hanya melihat Dashboard Pimpinan dan Laporan; `ADMIN_IRBAN` hanya melihat modul operasional sesuai scope; `SUPER_ADMIN` melihat seluruh menu administrasi.
@@ -192,6 +205,9 @@ F03 - App Shell & Role Routes (Completed) -> Next: F04 - Dashboard Admin Irban
   - Unit tests lulus (`lhp.service.spec.ts`).
 
 ## Files changed
+- `frontend/features/dashboard/`: Modul Dashboard Admin Irban (types, API client, custom hook TanStack Query, kartu metrik, status breakdown dinamis, peringatan SP Due, tabel LHP terkini, loading skeleton, dan formatter Rupiah/tanggal).
+- `frontend/app/(protected)/dashboard/irban/page.tsx`: Mengganti placeholder dengan komponen `IrbanDashboardView`.
+- `frontend/tests/dashboard-irban.test.ts`: Pengujian unit untuk format Rupiah, format persen, format tanggal Indonesia, handling status breakdown dinamis tanpa hardcode, dan kalkulasi recovery rate kerugian daerah.
 - `frontend/features/navigation/`: Konfigurasi menu/akses role, app shell responsif, loading state, halaman 403, protected guard, redirect dashboard, dan placeholder fitur.
 - `frontend/app/(protected)/`: Layout terproteksi dan route awal untuk dashboard, LHP, surat peringatan, laporan, pengguna, unit kerja, serta master data.
 - `frontend/features/auth/components/` & `frontend/app/login/page.tsx`: Redirect pascalogin kini mengikuti default route role dan tautan masuk aplikasi memakai tujuan yang sama.
@@ -226,14 +242,18 @@ F03 - App Shell & Role Routes (Completed) -> Next: F04 - Dashboard Admin Irban
 - `backend/src/reports/`: Modul pelaporan ringkasan pengawasan, ekspor Excel (CSV dengan BOM UTF-8), dan ekspor PDF landscape PDFKit.
 - `backend/src/dashboard/`: Modul dasbor operasional Irban dan dasbor eksekutif pimpinan (Bupati) dengan agregasi data multi-Irban.
 - `backend/test/reports-dashboard.e2e-spec.ts`: E2E test suite untuk pengujian guard dan proteksi akses unauthenticated pada Reports, Dashboard, dan TTE.
-- `docs/SESSION_HANDOFF.md`: Update handoff Checkpoints B17 s.d. B20.
+- `docs/SESSION_HANDOFF.md`: Update handoff Checkpoints B17 s.d. F04.
 - `docs/API_CONTRACT.md`: Update rincian API contract untuk rute TTE, Reports, Dashboard, dan Hardening.
 
 ## Decisions made
+- Seluruh angka dan metrik operasional dashboard Irban murni berasal dari payload API backend (`/api/v1/dashboard/irban`), tidak pernah dihitung ulang dari data parsial client.
+- Status breakdown dirender dinamis dari `Record<string, number>` sehingga penambahan atau perubahan label status rekomendasi di tabel master tidak merusak antarmuka.
+- Kartu pemulihan kerugian daerah mendukung nilai nol (`Rp 0`) atau opsional tanpa menyebabkan layout crash.
+- Filter tahun menyediakan pilihan tahun berjalan hingga 3 tahun sebelumnya dengan default otomatis tahun berjalan (`new Date().getFullYear()`).
+- Tombol segarkan data memanfaatkan `refetch()` TanStack Query dengan feedback indikator visual `animate-spin`.
 - Route guard F03 bersifat client-side untuk UX; setiap endpoint backend tetap wajib menegakkan autentikasi, role, dan scope.
 - `BUPATI` secara eksplisit hanya memiliki dua menu: Dashboard Pimpinan dan Laporan.
 - Default route `SUPER_ADMIN` dan `BUPATI` adalah `/dashboard/pimpinan`; default route `ADMIN_IRBAN` adalah `/dashboard/irban`.
-- Route domain pada F03 hanya placeholder berlabel checkpoint berikutnya; implementasi dashboard dan modul bisnis dimulai pada F04 dan checkpoint terkait.
 - Fetch wrapper menggunakan native `fetch`, bukan Axios, agar sesuai arsitektur repo dan tidak menambah lapisan interceptor. Refresh concurrency dikendalikan oleh satu promise pada level module.
 - Redirect pascalogin menggunakan route default berbasis role, kecuali parameter `next` internal yang aman tersedia.
 - Profil sesi hanya disimpan sebagai cache in-memory TanStack Query. Browser hanya memegang cookie `httpOnly` yang dikelola backend.
@@ -255,24 +275,18 @@ F03 - App Shell & Role Routes (Completed) -> Next: F04 - Dashboard Admin Irban
 - Role `BUPATI` dibatasi secara ketat hanya pada pembacaan dasbor pimpinan (`/dashboard/pimpinan`) dan laporan agregasi (`/reports`); akses ke dasbor operasional Irban langsung ditolak (`403 Forbidden`).
 
 ## Tests / verification
-- `npm test` (frontend) -> PASS (12 tests: auth client/refresh, safe redirect, visibilitas menu, akses route, dan default route role)
-- `npm audit --omit=optional` (frontend) -> PASS (0 vulnerability setelah mengganti test runner rentan dengan `tsx`)
-- Visual QA `/login?next=/laporan?tahun=2026` -> PASS (form, hierarchy, focus, spacing, dan metadata title ter-render benar)
+- `npm test` (frontend) -> PASS (17 tests: auth client/refresh, safe redirect, visibilitas menu, akses route, default route role, format Rupiah/persen/tanggal, dan status breakdown dinamis)
 - `npm run lint` (frontend) -> PASS (0 error, 0 warning)
-- `npm run build` (frontend) -> PASS (Next.js production build dan TypeScript berhasil)
-- `npm run build -- --webpack` dengan API mock lokal (frontend) -> PASS; fallback webpack dipakai untuk QA karena sandbox menolak port proses internal Turbopack.
-- Visual QA app shell -> PASS: desktop Bupati hanya menampilkan Dashboard Pimpinan dan Laporan, akses langsung `/lhp` menampilkan 403, serta drawer mobile 390x844 terbuka dan dapat digunakan.
-- Visual QA `http://localhost:3010` -> PASS (desktop render, hierarchy, spacing, dan content flow terbaca tanpa overlap)
+- `npm run build` (frontend) -> PASS (Next.js production build dan TypeScript compile sukses)
 - `npm run lint` (backend) -> PASS (0 error, 0 warning)
 - `npm run build` (backend) -> PASS (NestJS production build berhasil tanpa error)
-- `npm test` (backend) -> PASS (23 test suites, 135 unit tests passed 100%)
+- `npm test` (backend) -> PASS (23 test suites, 136 unit tests passed 100%)
 - `npm run test:e2e` (backend) -> PASS (3 test suites, 13 e2e tests passed 100%)
 
 ## Known issues / blockers
-- Tidak ada blocker untuk melanjutkan ke F04.
-- Instalasi dependency menampilkan peringatan engine: Node lokal `20.10.0`, sedangkan salah satu dependency lint meminta minimal `20.19.0`. Lint dan build tetap lulus; upgrade Node ke versi LTS yang memenuhi constraint disarankan sebelum CI/deployment.
+- Tidak ada blocker untuk melanjutkan ke F05.
 - Login menggunakan akun EGOV nyata belum dieksekusi karena checkpoint ini tidak menggunakan kredensial pengguna atau memodifikasi external database. Kontrak dan perilaku client diverifikasi melalui controller backend, unit test, build, dan visual QA.
-- Seluruh backend checkpoints (B01 s.d. B20) serta F01-F03 telah selesai.
+- Seluruh backend checkpoints (B01 s.d. B20) serta F01-F04 telah selesai.
 
 ## External schema facts verified
 - EGOV: Read-only `egov.users` (username, nama_nip, email, unit_kerja).
@@ -280,9 +294,13 @@ F03 - App Shell & Role Routes (Completed) -> Next: F04 - Dashboard Admin Irban
 - Database SIPATUH: Prisma client in sync, seed master data Irban, Jenis Pemeriksaan, Status Rekomendasi, dan Template Surat aktif.
 
 ## Next checkpoint
-- **F04 - Dashboard Admin Irban**
-- Implementasi dashboard operasional Admin Irban menggunakan endpoint `/api/v1/dashboard/irban`, termasuk kartu statistik, distribusi status rekomendasi, peringatan SP Due, dan aktivitas terbaru.
-- Preconditions terpenuhi: app shell, role route guard, session query, dan endpoint backend dashboard sudah tersedia.
+- **F05 - User/Irban Management UI**
+- Implementasi antarmuka Super Admin untuk pengelolaan pengguna lokal SIPATUH dan Irban:
+  - Pencarian user dari database EGOV secara read-only via API backend.
+  - Aktivasi user SIPATUH dengan penetapan role (`SUPER_ADMIN`, `ADMIN_IRBAN`, `BUPATI`); penugasan satu `irban_id` wajib bagi `ADMIN_IRBAN`.
+  - Daftar pengguna terdaftar, aktivasi/deaktivasi status akun (tanpa menyentuh EGOV).
+  - CRUD referensi Irban sesuai endpoint backend.
+- Preconditions terpenuhi: app shell, layout terproteksi, navigasi RBAC, dan modul backend `/users` serta `/irban` telah teruji.
 
 ## Do not forget
 - No writes to EGOV/SIMPEG
@@ -290,3 +308,4 @@ F03 - App Shell & Role Routes (Completed) -> Next: F04 - Dashboard Admin Irban
 - Admin Irban scope enforced in backend
 - Bupati read-only executive access only
 - JWT/access token/refresh token tidak boleh disimpan di localStorage, sessionStorage, atau Zustand
+

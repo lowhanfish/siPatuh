@@ -1,12 +1,10 @@
-import { FeaturePlaceholder } from "@/features/navigation/components/feature-placeholder";
+import { IrbanDashboardView } from "@/features/dashboard/components/irban/irban-dashboard-view";
+
+export const metadata = {
+  title: "Dashboard Admin Irban · SIPATUH",
+  description: "Dashboard operasional pemantauan LHP dan tindak lanjut wilayah Irban",
+};
 
 export default function DashboardIrbanPage() {
-  return (
-    <FeaturePlaceholder
-      checkpoint="F04 · Dashboard Admin Irban"
-      description="Ringkasan operasional LHP, rekomendasi, nilai keuangan, surat peringatan, dan aktivitas terbaru untuk wilayah Irban pengguna."
-      eyebrow="Dashboard operasional"
-      title="Dashboard Irban"
-    />
-  );
+  return <IrbanDashboardView />;
 }
