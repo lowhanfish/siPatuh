@@ -9,6 +9,8 @@ import { IrbanModule } from './irban/irban.module';
 import { ExternalModule } from './external/external.module';
 import { FilesModule } from './files/files.module';
 import { AuditModule } from './audit/audit.module';
+import { MasterDataModule } from './master-data/master-data.module';
+import { LhpModule } from './lhp/lhp.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 import { validateConfig } from './config/env.validation';
@@ -23,6 +25,8 @@ import { validateConfig } from './config/env.validation';
     AuthModule,
     UsersModule,
     IrbanModule,
+    MasterDataModule,
+    LhpModule,
     ExternalModule,
     FilesModule,
     AuditModule,

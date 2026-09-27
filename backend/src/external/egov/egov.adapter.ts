@@ -113,6 +113,91 @@ export class EgovAdapter implements IEgovAdapter, OnModuleDestroy {
   }
 
   /**
+   * Mencari user EGOV berdasarkan ID riil (primary key di egov.users).
+   */
+  async findUserById(id: string): Promise<EgovUserRecord | null> {
+    if (!id) return null;
+
+    try {
+      const pool = this.getPool();
+      const query =
+        'SELECT id, username, nama_nip, email, unit_kerja FROM users WHERE id = ? LIMIT 1';
+      const [rows] = await pool.query(query, [id]);
+      const list = rows as Array<Record<string, unknown>>;
+
+      if (!list || list.length === 0) {
+        return null;
+      }
+
+      const row = list[0] as {
+        id: string | number;
+        username: string;
+        nama_nip?: string | null;
+        email?: string | null;
+        unit_kerja?: string | null;
+      };
+
+      return {
+        id: String(row.id),
+        username: String(row.username),
+        nip: row.nama_nip ? String(row.nama_nip) : null,
+        nama: String(row.username),
+        email: row.email ? String(row.email) : null,
+        unit_kerja: row.unit_kerja ? String(row.unit_kerja) : null,
+        isActive: true,
+      };
+    } catch (err) {
+      this.logger.error(
+        `Error mencari pengguna EGOV by ID: ${(err as Error).message}`,
+      );
+      throw new Error('Gagal membaca data dari database EGOV');
+    }
+  }
+
+  /**
+   * Mencari daftar pengguna EGOV untuk aktivasi user SIPATUH oleh Super Admin.
+   * Pencarian mencakup username atau NIP (nama_nip).
+   */
+  async searchUsers(query: string, limit = 20): Promise<EgovUserRecord[]> {
+    const trimmed = query ? query.trim() : '';
+    if (!trimmed) {
+      return [];
+    }
+
+    try {
+      const pool = this.getPool();
+      const searchTerm = `%${trimmed}%`;
+      const sql =
+        'SELECT id, username, nama_nip, email, unit_kerja FROM users WHERE username LIKE ? OR nama_nip LIKE ? ORDER BY username ASC LIMIT ?';
+      const [rows] = await pool.query(sql, [
+        searchTerm,
+        searchTerm,
+        Math.min(limit, 50),
+      ]);
+      const list = rows as Array<{
+        id: string | number;
+        username: string;
+        nama_nip?: string | null;
+        email?: string | null;
+        unit_kerja?: string | null;
+      }>;
+
+      return list.map((row) => ({
+        id: String(row.id),
+        username: String(row.username),
+        nip: row.nama_nip ? String(row.nama_nip) : null,
+        nama: String(row.username),
+        email: row.email ? String(row.email) : null,
+        unit_kerja: row.unit_kerja ? String(row.unit_kerja) : null,
+        isActive: true,
+      }));
+    } catch (err) {
+      this.logger.error(`Error search users EGOV: ${(err as Error).message}`);
+      throw new Error('Gagal mencari data pengguna EGOV');
+    }
+  }
+
+  /**
    * Memvalidasi kecocokan password polos terhadap password hash dari EGOV menggunakan Bcrypt.
    * Mengembalikan data pengguna bersih (tanpa passwordHash).
    * Password TIDAK PERNAH disimpan ke SIPATUH.

@@ -29,6 +29,16 @@ export interface IEgovAdapter {
   findUserByIdentifier(identifier: string): Promise<EgovUserRecord | null>;
 
   /**
+   * Mencari pengguna EGOV berdasarkan ID riil di tabel users.
+   */
+  findUserById(id: string): Promise<EgovUserRecord | null>;
+
+  /**
+   * Mencari daftar pengguna EGOV untuk pemilihan aktivasi user oleh Super Admin.
+   */
+  searchUsers(query: string, limit?: number): Promise<EgovUserRecord[]>;
+
+  /**
    * Memvalidasi kecocokan password polos terhadap password hash dari EGOV menggunakan Bcrypt.
    * Tidak boleh menyalin atau menyimpan password ke database SIPATUH.
    */
