@@ -16,15 +16,19 @@ import { AuditService } from '../audit/audit.service';
 import { FilesService } from '../files/files.service';
 import { SpDueEngineService } from './sp-due.service';
 import { SpPdfGeneratorService } from './sp-pdf.service';
+import { TteClient } from '../external/tte/tte.client';
 import {
   CreateSuratPeringatanDto,
   QuerySuratPeringatanDto,
+  SignSuratPeringatanDto,
   UpdateSuratPeringatanDto,
 } from './dto/create-surat-peringatan.dto';
 import type { AuthenticatedUser } from '../auth/interfaces/jwt-payload.interface';
 
 @Injectable()
 export class SuratPeringatanService {
+  private readonly signingLocks = new Set<string>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly irbanScopeService: IrbanScopeService,
@@ -34,6 +38,7 @@ export class SuratPeringatanService {
     private readonly filesService: FilesService,
     private readonly spDueEngine: SpDueEngineService,
     private readonly pdfGenerator: SpPdfGeneratorService,
+    private readonly tteClient: TteClient,
   ) {}
 
   /**
@@ -49,6 +54,21 @@ export class SuratPeringatanService {
       fs.mkdirSync(draftDir, { recursive: true });
     }
     return draftDir;
+  }
+
+  /**
+   * Helper path absolut direktori signed
+   */
+  private getSignedDir(): string {
+    const signedDir = path.join(
+      this.filesService.getUploadsRoot(),
+      'surat-peringatan',
+      'signed',
+    );
+    if (!fs.existsSync(signedDir)) {
+      fs.mkdirSync(signedDir, { recursive: true });
+    }
+    return signedDir;
   }
 
   /**
@@ -721,6 +741,175 @@ export class SuratPeringatanService {
     return {
       stream: fs.createReadStream(fullPath),
       filename: `Draft_${sp.level}_${sp.nomor_surat.replace(/[/\\]/g, '_')}.pdf`,
+      size: stat.size,
+    };
+  }
+
+  /**
+   * Menandatangani Surat Peringatan secara elektronik melalui integrasi TTE BSrE
+   */
+  async signTte(
+    id: string,
+    dto: SignSuratPeringatanDto,
+    currentUser: AuthenticatedUser,
+  ) {
+    this.irbanScopeService.assertCanMutate(currentUser);
+
+    const sp = await this.prisma.suratPeringatan.findUnique({
+      where: { id },
+      include: {
+        lhp: true,
+      },
+    });
+
+    if (!sp) {
+      throw new NotFoundException(
+        `Surat Peringatan dengan ID ${id} tidak ditemukan`,
+      );
+    }
+
+    this.irbanScopeService.validateIrbanAccess(currentUser, sp.lhp.irban_id);
+
+    // 1. Cek imutabilitas: jika sudah signed, dilarang tanda tangan ulang
+    if (sp.signed_at || sp.signed_path) {
+      throw new ConflictException(
+        'Surat Peringatan ini sudah ditandatangani secara elektronik (TTE)',
+      );
+    }
+
+    // 2. Lock concurrency in-memory untuk mencegah double-click signing
+    if (this.signingLocks.has(id)) {
+      throw new ConflictException(
+        'Proses penandatanganan TTE sedang berlangsung untuk surat ini. Harap tunggu.',
+      );
+    }
+
+    this.signingLocks.add(id);
+
+    try {
+      // 3. Muat berkas draft PDF fisik
+      let draftPath = sp.draft_path;
+      let fullDraftPath = draftPath
+        ? path.join(this.filesService.getUploadsRoot(), draftPath)
+        : null;
+
+      if (!fullDraftPath || !fs.existsSync(fullDraftPath)) {
+        const regenerated = await this.regenerateDraft(id, currentUser);
+        draftPath = regenerated.draft_path;
+        fullDraftPath = path.join(
+          this.filesService.getUploadsRoot(),
+          draftPath!,
+        );
+      }
+
+      const draftBuffer = fs.readFileSync(fullDraftPath);
+
+      // 4. Kirim ke wrapper TTE (tanpa mencatat password/passphrase/token ke log)
+      const tteResult = await this.tteClient.signPdf({
+        judul: `Surat Peringatan ${sp.level}`,
+        nomor: sp.nomor_surat,
+        nik: dto.nik.trim(),
+        passphrase: dto.passphrase,
+        pdfBuffer: draftBuffer,
+      });
+
+      // 5. Simpan berkas signed PDF fisik ke uploads/surat-peringatan/signed/
+      const signedFileName = `${crypto.randomUUID()}.pdf`;
+      const signedRelativePath = `surat-peringatan/signed/${signedFileName}`;
+      const signedAbsolutePath = path.join(this.getSignedDir(), signedFileName);
+      fs.writeFileSync(signedAbsolutePath, tteResult.signedPdfBuffer);
+
+      // 6. Update database record secara atomic
+      const signedAt = new Date();
+      const updatedSp = await this.prisma.suratPeringatan.update({
+        where: { id },
+        data: {
+          signed_at: signedAt,
+          signed_by: currentUser.id,
+          signed_path: signedRelativePath,
+        },
+        include: {
+          items: true,
+          lhp: {
+            select: {
+              id: true,
+              nomor_lhp: true,
+              irban_id: true,
+              simpeg_unit_kerja_id: true,
+            },
+          },
+        },
+      });
+
+      // 7. Audit Log aman (BEBAS SECRET)
+      await this.auditService.log({
+        actor_id: currentUser.id,
+        actor_role: currentUser.role,
+        action: 'TTE_SIGN_SUCCESS',
+        entity: 'SuratPeringatan',
+        entity_id: id,
+        metadata: {
+          nomor_surat: sp.nomor_surat,
+          level: sp.level,
+          signed_at: signedAt.toISOString(),
+          signer_id: currentUser.id,
+        },
+      });
+
+      const opd = await this.simpegAdapter.findUnitKerjaById(
+        sp.simpeg_unit_kerja_id,
+      );
+
+      return {
+        ...updatedSp,
+        unit_kerja_nama: opd?.unit_kerja || 'Perangkat Daerah',
+        status: 'SIGNED',
+      };
+    } catch (error) {
+      await this.auditService.log({
+        actor_id: currentUser.id,
+        actor_role: currentUser.role,
+        action: 'TTE_SIGN_FAILED',
+        entity: 'SuratPeringatan',
+        entity_id: id,
+        metadata: {
+          nomor_surat: sp.nomor_surat,
+          error_message:
+            error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
+      throw error;
+    } finally {
+      this.signingLocks.delete(id);
+    }
+  }
+
+  /**
+   * Mengambil file stream signed PDF yang telah di-TTE
+   */
+  async getSignedFileStream(id: string, currentUser: AuthenticatedUser) {
+    const sp = await this.findById(id, currentUser);
+
+    if (!sp.signed_path) {
+      throw new NotFoundException(
+        'Berkas PDF bertanda tangan digital (TTE) belum tersedia untuk surat ini',
+      );
+    }
+
+    const fullPath = path.join(
+      this.filesService.getUploadsRoot(),
+      sp.signed_path,
+    );
+    if (!fs.existsSync(fullPath)) {
+      throw new NotFoundException(
+        'Berkas fisik PDF bertanda tangan tidak ditemukan di server',
+      );
+    }
+
+    const stat = fs.statSync(fullPath);
+    return {
+      stream: fs.createReadStream(fullPath),
+      filename: `Signed_${sp.level}_${sp.nomor_surat.replace(/[/\\]/g, '_')}.pdf`,
       size: stat.size,
     };
   }

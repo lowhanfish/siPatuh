@@ -190,10 +190,64 @@ Seluruh endpoint backend menggunakan basis URL `/api/v1` dan mengembalikan respo
 
 ---
 
-### 2.11 Domain Mendatang (Checkpoint B17 s.d. B20)
-* `POST /api/v1/surat-peringatan/:id/sign-tte` (B17)
-* `GET /api/v1/reports` & export (B18)
-* `GET /api/v1/dashboard/irban` & `GET /api/v1/dashboard/pimpinan` (B19)
-* Backend Hardening & Final Tests (B20)
+### 2.11 TTE Integration (`/surat-peringatan/:id/sign-tte` & `/signed`)
+* `POST /api/v1/surat-peringatan/:id/sign-tte` (ADMIN_IRBAN, SUPER_ADMIN)
+  * Body: `{ "passphrase": "...", "nik": "..." (opsional, default ke NIP pengguna) }`
+  * Throttle: 10 req / menit.
+  * Menandatangani berkas draft PDF secara elektronik via wrapper service TTE (`lowhanfish/tte_api`).
+  * Concurrency lock via in-memory lock prevents duplicate concurrent sign attempts.
+  * File PDF asli diverifikasi ukuran ($\le 7$ MB), dikirimkan via base64 data URI bersama anchor `#tagTTD#`.
+  * Hasil ditandatangani disimpan permanen ke disk `uploads/surat-peringatan/signed/`.
+  * Catatan keamanan: `passphrase` dan `TOKEN` tidak pernah dicatat dalam log ataupun disimpan ke database.
+  * Status SP berubah menjadi signed (`signed_at`, `signed_by_user_id`, `signed_path`). Draft SP menjadi **permanen dan immutable** (tidak dapat dihapus, diedit, atau digenerate ulang).
+* `GET /api/v1/surat-peringatan/:id/signed`
+  * Stream unduhan / inline preview berkas PDF resmi yang telah ditandatangani secara elektronik (BSrE).
+
+### 2.12 Pelaporan & Ekspor Rekapitulasi (`/reports`)
+* `GET /api/v1/reports/summary`
+  * Filter query: `?tahun=2026&irban_id=...&simpeg_unit_kerja_id=...&jenis_pemeriksaan_id=...&status_rekomendasi_id=...`
+  * Mengembalikan rekapitulasi ringkasan pengawasan:
+    * Total LHP (total, open, closed).
+    * Total temuan.
+    * Total rekomendasi (total, selesai, belum_selesai, persentase_selesai).
+    * Metrik keuangan (total_rekomendasi, total_setor, sisa_kewajiban, persentase_setor).
+    * Distribusi status rekomendasi (`status_breakdown`).
+    * Matriks pemantauan per OPD (`opd_breakdown` dengan nama unit kerja dari SIMPEG).
+* `GET /api/v1/reports/export/excel`
+  * Mengunduh berkas tabular Excel (format CSV dengan `\uFEFF` UTF-8 BOM untuk kompatibilitas penuh dengan Microsoft Excel).
+  * Filter query sama dengan `/reports/summary`.
+* `GET /api/v1/reports/export/pdf`
+  * Mengunduh berkas laporan eksekutif PDF resmi berformat landscape (A4) yang mencakup header instansi, ringkasan kartu metrik, status breakdown, dan tabel per-OPD.
+
+### 2.13 Dashboard Pengawasan (`/dashboard`)
+* `GET /api/v1/dashboard/irban` (ADMIN_IRBAN, SUPER_ADMIN)
+  * Filter query: `?tahun=2026`
+  * Dasbor operasional berbasis wilayah kerja Irban yang aktif.
+  * Menampilkan:
+    * Kartu statistik (LHP, Temuan, Rekomendasi, Penyelesaian %, Rasio Pemulihan Kerugian Finansial).
+    * Distribusi status rekomendasi.
+    * Peringatan SP Due (daftar LHP yang melewati batas 60/90/120 hari kalender).
+    * Aktivitas tindak lanjut dan verifikasi terbaru.
+  * *Catatan Keamanan*: Peran `BUPATI` dilarang mengakses rute ini (`403 Forbidden`).
+* `GET /api/v1/dashboard/pimpinan` (BUPATI, SUPER_ADMIN)
+  * Filter query: `?tahun=2026`
+  * Dasbor eksekutif ringkasan seluruh wilayah pengawasan Kabupaten (seluruh 5 Irban).
+  * Menampilkan:
+    * Ringkasan makro pengawasan (total LHP, rekomendasi, penyelesaian, keuangan).
+    * Distribusi penerbitan Surat Peringatan (SP1, SP2, SP3).
+    * Perbandingan progres pengawasan antar-Irban (Irban I s.d. Irban V).
+    * Top 5 OPD dengan rekomendasi belum selesai terbanyak.
+
+### 2.14 Backend Hardening & Keamanan Global (B20)
+* **Rate Limiting / Throttler**:
+  * Global tier: 100 request / menit.
+  * Sensitif tier (`auth/login`, `surat-peringatan/:id/sign-tte`): 10 request / menit.
+  * Refresh token: 20 request / menit.
+* **Audit Logging & Sanitasi Rahasia**:
+  * Seluruh mutasi data sensitif, percobaan login, gagal/sukses TTE dicatat dalam tabel `audit_logs`.
+  * Nilai rahasia (kata sandi, token JWT/TTE, passphrase, NIK lengkap) disanitasi dan tidak pernah dibocorkan ke log sistem.
+* **Strict Read-Only External DBs**:
+  * Database `egov` dan `simpeg` hanya dibaca melalui MySQL connection pool terisolasi tanpa hak akses DDL/DML.
+
 
 

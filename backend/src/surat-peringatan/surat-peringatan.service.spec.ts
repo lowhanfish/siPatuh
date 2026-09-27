@@ -18,7 +18,9 @@ import { SimpegAdapter } from '../external/simpeg/simpeg.adapter';
 import { AuditService } from '../audit/audit.service';
 import { FilesService } from '../files/files.service';
 import { SpDueEngineService } from './sp-due.service';
+import fs from 'fs';
 import { SpPdfGeneratorService } from './sp-pdf.service';
+import { TteClient } from '../external/tte/tte.client';
 import type { AuthenticatedUser } from '../auth/interfaces/jwt-payload.interface';
 
 describe('SuratPeringatanService', () => {
@@ -131,6 +133,14 @@ describe('SuratPeringatanService', () => {
     generateDraftPdf: jest.fn().mockResolvedValue(Buffer.from('%PDF-1.3 mock')),
   };
 
+  const mockTteClient = {
+    signPdf: jest.fn().mockResolvedValue({
+      filename: 'signed_test.pdf',
+      signedPdfBuffer: Buffer.from('%PDF-1.4 signed test by BSrE'),
+    }),
+    isConfigured: jest.fn().mockReturnValue(true),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -143,6 +153,7 @@ describe('SuratPeringatanService', () => {
         { provide: FilesService, useValue: mockFilesService },
         { provide: SpDueEngineService, useValue: mockSpDueEngine },
         { provide: SpPdfGeneratorService, useValue: mockPdfGenerator },
+        { provide: TteClient, useValue: mockTteClient },
       ],
     }).compile();
 
@@ -398,6 +409,126 @@ describe('SuratPeringatanService', () => {
 
       await expect(service.delete('sp-signed-1', adminIrban1)).rejects.toThrow(
         BadRequestException,
+      );
+    });
+  });
+
+  describe('signTte', () => {
+    const mockDraftSp = {
+      id: 'sp-draft-1',
+      nomor_surat: '700/01/SP1/2026',
+      level: SpLevelEnum.SP1,
+      simpeg_unit_kerja_id: 'unit-dinsos',
+      draft_path: 'surat-peringatan/draft/draft.pdf',
+      signed_at: null,
+      signed_path: null,
+      lhp: { irban_id: 'irban-1' },
+      items: [],
+    };
+
+    const signDto = {
+      nik: '7405010101900001',
+      passphrase: 'securepassphrase',
+    };
+
+    it('should successfully sign SP via TteClient and update database', async () => {
+      mockPrisma.suratPeringatan.findUnique.mockResolvedValueOnce(mockDraftSp);
+      // Mock regenerateDraft in case file read is needed
+      jest
+        .spyOn(service, 'regenerateDraft')
+        .mockResolvedValueOnce(
+          mockDraftSp as unknown as Awaited<
+            ReturnType<typeof service.regenerateDraft>
+          >,
+        );
+
+      const mockSignedResult = {
+        id: 'sp-draft-1',
+        nomor_surat: '700/01/SP1/2026',
+        level: SpLevelEnum.SP1,
+        signed_at: new Date(),
+        signed_path: 'surat-peringatan/signed/test.pdf',
+        lhp: { irban_id: 'irban-1' },
+        items: [],
+      };
+
+      mockPrisma.suratPeringatan.update.mockResolvedValueOnce(mockSignedResult);
+      mockSimpegAdapter.findUnitKerjaById.mockResolvedValueOnce({
+        unit_kerja: 'Dinas Sosial',
+      });
+
+      // Mock fs methods
+      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+      jest
+        .spyOn(fs, 'readFileSync')
+        .mockReturnValue(Buffer.from('%PDF-1.4 draft'));
+      jest.spyOn(fs, 'writeFileSync').mockReturnValue(undefined);
+
+      const res = await service.signTte('sp-draft-1', signDto, adminIrban1);
+
+      expect(res).toBeDefined();
+      expect(res.status).toBe('SIGNED');
+      expect(mockTteClient.signPdf).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nomor: '700/01/SP1/2026',
+          nik: '7405010101900001',
+          passphrase: 'securepassphrase',
+        }),
+      );
+      expect(mockAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'TTE_SIGN_SUCCESS',
+          entity: 'SuratPeringatan',
+        }),
+      );
+    });
+
+    it('should reject signTte if surat is already signed', async () => {
+      mockPrisma.suratPeringatan.findUnique.mockResolvedValueOnce({
+        ...mockDraftSp,
+        signed_at: new Date(),
+      });
+
+      await expect(
+        service.signTte('sp-draft-1', signDto, adminIrban1),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('should reject signTte if Admin Irban is from different Irban', async () => {
+      mockPrisma.suratPeringatan.findUnique.mockResolvedValueOnce(mockDraftSp);
+
+      await expect(
+        service.signTte('sp-draft-1', signDto, adminIrban2),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should log TTE_SIGN_FAILED and rethrow error if TteClient throws', async () => {
+      mockPrisma.suratPeringatan.findUnique.mockResolvedValueOnce(mockDraftSp);
+      jest
+        .spyOn(service, 'regenerateDraft')
+        .mockResolvedValueOnce(
+          mockDraftSp as unknown as Awaited<
+            ReturnType<typeof service.regenerateDraft>
+          >,
+        );
+
+      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+      jest
+        .spyOn(fs, 'readFileSync')
+        .mockReturnValue(Buffer.from('%PDF-1.4 draft'));
+
+      mockTteClient.signPdf.mockRejectedValueOnce(
+        new BadRequestException('Passphrase salah'),
+      );
+
+      await expect(
+        service.signTte('sp-draft-1', signDto, adminIrban1),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'TTE_SIGN_FAILED',
+        }),
       );
     });
   });

@@ -1,28 +1,66 @@
 # SESSION_HANDOFF
 
 ## Active checkpoint
-B16 - Surat Peringatan & PDF (Completed) -> Next: B17 - TTE Integration
+B20 - Backend Hardening & Final Tests (Completed) -> Next: F01 - Bootstrap Frontend (Next.js 14)
 
 ## Completed in this session
-- **Checkpoint B16 (Surat Peringatan & PDF)**:
-  - Penerbitan SP1/SP2/SP3 ter-scope Irban (`POST /api/v1/surat-peringatan`):
-    - Nomor surat manual dan diverifikasi unik secara sistem (`@unique`).
-    - Tanggal surat manual dengan validasi batas umur LHP minimal (SP1 $\ge 30$, SP2 $\ge 45$, SP3 $\ge 60$ hari kalender sejak `tanggal_diterima_lhp`).
-    - Enforce 1 level per LHP (`@@unique([lhp_id, level])`).
-    - Validasi urutan eskalasi: SP2 mensyaratkan SP1, SP3 mensyaratkan SP2.
-    - Validasi LHP terbuka (`closed_at == null`) dan memiliki rekomendasi outstanding (`BELUM_SELESAI`).
-  - Snapshotting Permanen:
-    - Snapshot nama Unit Kerja OPD, nama penerima, NIP, dan jabatan pejabat saat surat dibuat (kebal terhadap perubahan mutasi pejabat/OPD di masa depan).
-    - Snapshot seluruh rekomendasi outstanding ke tabel `SuratPeringatanItem` beserta uraian dan nilai nominalnya.
-  - PDF Generation & TTE Anchor Injection:
-    - `SpPdfGeneratorService` menggunakan PDFKit untuk memproduksi berkas PDF resmi standar Pemkab Konawe Selatan lengkap dengan kop dinas, nomor, sifat, perihal, tujuan, narasi template dinamis, tabel temuan & rekomendasi, serta blok tanda tangan.
-    - Sisipan visual anchor/tag TTE yang bersumber murni dari konfigurasi backend (`TTE_SIGNATURE_TAG` / `#tagTTD#`), bukan string liar tersebar di kode.
-    - Penyimpanan file draft PDF di direktori aman `uploads/surat-peringatan/draft/`.
-    - Endpoint streaming unduhan/preview PDF draft (`GET /api/v1/surat-peringatan/:id/draft`).
-  - Regenerasi & Perlindungan Imutabilitas (Immutability):
-    - Surat draft dapat di-regenerate (`POST /api/v1/surat-peringatan/:id/regenerate-draft`), di-update, atau dihapus selama belum ditandatangani.
-    - Begitu surat berhasil di-TTE (`signed_at != null` atau `signed_path != null`), surat berstatus *immutable*: regenerasi, update, dan delete diblokir secara permanen.
-  - Unit tests: `sp-pdf.service.spec.ts` (6 tests) & `surat-peringatan.service.spec.ts` (14 tests) -> 100% passed.
+- **Checkpoint B17 (TTE Integration - lowhanfish/tte_api)**:
+  - `TteClient` isolated HTTP client (`backend/src/external/tte/tte.client.ts`):
+    - Komunikasi aman dengan wrapper TTE API (`POST /api/sign-pdf`).
+    - Validasi pre-flight berkas PDF (ukuran maksimum $\le 7$ MB).
+    - Format data URI payload (`data:application/pdf;base64,...`), `tagTTDX` (`#tagTTD#`), sanitasi token/passphrase dari exception logging.
+    - Dekoding base64 hasil penandatanganan dan validasi header file (`%PDF-`).
+  - Endpoint Penandatanganan Elektronik & Stream (`POST /api/v1/surat-peringatan/:id/sign-tte` & `GET /api/v1/surat-peringatan/:id/signed`):
+    - Concurrency lock in-memory (`signingLocks`) mencegah race condition / double-clicking sign request.
+    - Verifikasi imutabilitas: penolakan penandatanganan ulang jika SP sudah ditandatangani.
+    - Penyimpanan berkas tertandatangani di `uploads/surat-peringatan/signed/<uuid>.pdf`.
+    - Update database secara atomic (`signed_at`, `signed_by_user_id`, `signed_path`).
+    - Pencatatan Audit Trail (`TTE_SIGN_SUCCESS`, `TTE_SIGN_FAILED`).
+    - Stream unduhan PDF bersertifikat BSrE aman dengan validasi otorisasi & scope Irban.
+  - Unit tests: `tte.client.spec.ts` & `surat-peringatan.service.spec.ts` (100% passed).
+
+- **Checkpoint B18 (Pelaporan & Ekspor Rekapitulasi)**:
+  - `ReportsService` & `ReportsController` (`backend/src/reports/`):
+    - Agregasi pengawasan multi-dimensi (`GET /api/v1/reports/summary`):
+      - Rekap LHP total/open/closed, total temuan, rekomendasi total/selesai/belum selesai/persen.
+      - Metrik finansial: total nilai rekomendasi, total setor, sisa kewajiban, rasio pemulihan.
+      - Distribusi status rekomendasi (`status_breakdown`).
+      - Matriks pemantauan per OPD (`opd_breakdown`) dengan nama unit kerja dari SIMPEG.
+      - Pemaksaan filter wilayah kerja Irban bagi `ADMIN_IRBAN` dan pembatasan akses.
+    - Ekspor Excel (`GET /api/v1/reports/export/excel`):
+      - Format CSV standar dengan UTF-8 Byte Order Mark (`\uFEFF`) agar dapat dibuka langsung di Microsoft Excel tanpa masalah encoding.
+    - Ekspor PDF Eksekutif (`GET /api/v1/reports/export/pdf`):
+      - Desain dokumen PDF landscape (A4) berbasis PDFKit dengan header instansi Inspektorat Daerah, kartu ringkasan eksekutif, tabel distribusi status, dan tabel detail per OPD.
+  - Unit tests: `reports.service.spec.ts` (100% passed).
+
+- **Checkpoint B19 (Dashboard Pengawasan)**:
+  - `DashboardService` & `DashboardController` (`backend/src/dashboard/`):
+    - Dasbor Operasional Irban (`GET /api/v1/dashboard/irban`):
+      - Ter-scope otomatis ke wilayah Irban pengguna.
+      - Menampilkan metrik real-time LHP, Temuan, Rekomendasi, pemulihan keuangan, dan status breakdown.
+      - Widget peringatan SP Due (LHP melebihi batas 60/90/120 hari).
+      - Riwayat aktivitas verifikasi dan tindak lanjut terbaru.
+      - *Keamanan*: Peran `BUPATI` diblokir eksplisit (`403 Forbidden`).
+    - Dasbor Eksekutif Pimpinan (`GET /api/v1/dashboard/pimpinan`):
+      - Dikhususkan untuk `BUPATI` dan `SUPER_ADMIN`.
+      - Rekapitulasi makro seluruh 5 wilayah Irban.
+      - Rekapitulasi jumlah surat peringatan aktif berdasarkan level (SP1, SP2, SP3).
+      - Komparasi performa dan tingkat penyelesaian rekomendasi antar-Irban (Irban I s.d. V).
+      - Top 5 OPD dengan rekomendasi tertunggak terbanyak.
+  - Unit tests: `dashboard.service.spec.ts` (100% passed).
+
+- **Checkpoint B20 (Backend Hardening & Final Tests)**:
+  - Rate Limiting / DDoS Protection:
+    - `@nestjs/throttler` terpasang global (100 req / menit per IP).
+    - Throttling ketat pada rute sensitif: `POST /auth/login` (10 req/menit), `POST /auth/refresh` (20 req/menit), dan `POST /surat-peringatan/:id/sign-tte` (10 req/menit).
+  - Pengamanan Data & Zero-Secret Leakage:
+    - Verifikasi eliminasi seluruh logging kata sandi, passphrase, token JWT, token TTE, dan NIK lengkap.
+    - Database eksternal `egov` dan `simpeg` strictly read-only tanpa hak write/migration.
+  - Pengujian Komprehensif:
+    - 23 Unit Test Suites: 135 tests passed 100%.
+    - 3 E2E Test Suites: 13 tests passed 100% (mencakup Auth, App/Health, dan Guard Protection pada Reports/Dashboard/TTE).
+    - ESLint: 0 errors, 0 warnings.
+    - NestJS Production Build: Success.
 
 - **Checkpoint B11 (Temuan & Rekomendasi)**:
   - CRUD Temuan (`/api/v1/lhp/:lhpId/temuan`, `/api/v1/temuan/:id`):
@@ -128,14 +166,21 @@ B16 - Surat Peringatan & PDF (Completed) -> Next: B17 - TTE Integration
   - Unit tests lulus (`lhp.service.spec.ts`).
 
 ## Files changed
+- `backend/package.json` & `backend/package-lock.json`: Penambahan `@nestjs/throttler` dependency.
+- `backend/src/app.module.ts`: Registrasi ThrottlerModule, ReportsModule, DashboardModule, dan ThrottlerGuard sebagai APP_GUARD.
+- `backend/src/external/`:
+  - `interfaces/tte.interface.ts`: Typed interface kontrak TTE API wrapper.
+  - `tte/tte.client.ts` & `tte/tte.client.spec.ts`: Client HTTP TTE terisolasi dengan validasi size, formatting payload, dan error handling.
+  - `external.module.ts`: Export TteClient.
 - `backend/src/surat-peringatan/`:
-  - `sp-pdf.service.ts` & `sp-pdf.service.spec.ts`: PDFKit generator dinas resmi dengan anchor tag TTE `#tagTTD#` dari konfigurasi.
-  - `surat-peringatan.service.ts` & `surat-peringatan.service.spec.ts`: Logika snapshotting pejabat & item rekomendasi, validasi umur & sekuensial SP, regenerasi draft, dan proteksi imutabilitas.
-  - `surat-peringatan.controller.ts`: Endpoint CRUD SP, preview/download stream draft PDF, regenerasi draft.
-  - `dto/create-surat-peringatan.dto.ts`: DTO validasi pembuatan, update, dan query surat peringatan.
-  - `surat-peringatan.module.ts`: Wiring modul dan export services.
-- `docs/SESSION_HANDOFF.md`: Update handoff Checkpoint B16.
-- `docs/API_CONTRACT.md`: Update rincian endpoint Surat Peringatan & draft PDF.
+  - `dto/create-surat-peringatan.dto.ts`: Tambahan DTO `SignSuratPeringatanDto`.
+  - `surat-peringatan.service.ts` & `surat-peringatan.service.spec.ts`: Implementasi `signTte`, in-memory concurrency locking, update atomic, dan stream signed PDF.
+  - `surat-peringatan.controller.ts`: Endpoint `POST /:id/sign-tte` dan `GET /:id/signed` dengan proteksi throttle.
+- `backend/src/reports/`: Modul pelaporan ringkasan pengawasan, ekspor Excel (CSV dengan BOM UTF-8), dan ekspor PDF landscape PDFKit.
+- `backend/src/dashboard/`: Modul dasbor operasional Irban dan dasbor eksekutif pimpinan (Bupati) dengan agregasi data multi-Irban.
+- `backend/test/reports-dashboard.e2e-spec.ts`: E2E test suite untuk pengujian guard dan proteksi akses unauthenticated pada Reports, Dashboard, dan TTE.
+- `docs/SESSION_HANDOFF.md`: Update handoff Checkpoints B17 s.d. B20.
+- `docs/API_CONTRACT.md`: Update rincian API contract untuk rute TTE, Reports, Dashboard, dan Hardening.
 
 ## Decisions made
 - Scope Irban selalu dipaksakan dari token JWT backend pada `IrbanScopeService.resolveEffectiveIrbanId()` sehingga manipulasi parameter query client diabaikan total untuk `ADMIN_IRBAN`.
@@ -144,18 +189,20 @@ B16 - Surat Peringatan & PDF (Completed) -> Next: B17 - TTE Integration
 - Hard delete LHP dilarang jika sudah memiliki surat peringatan bertandatangan digital (TTE).
 - 100% pelunasan finansial pada tindak lanjut tidak mengubah status rekomendasi menjadi "Selesai/Sesuai" secara otomatis. Penentuan status sepenuhnya wewenang verifikator manusia (inspektur).
 - Kalkulasi SP Due engine strictly menggunakan `tanggal_diterima_lhp` dalam hari kalender murni.
-- Anchor TTE disuntikkan secara dinamis ke dalam dokumen PDF menggunakan variabel konfigurasi `TTE_SIGNATURE_TAG` (`#tagTTD#`), menjamin konsistensi saat proses penandatanganan elektronik di Checkpoint B17.
+- Anchor TTE disuntikkan secara dinamis ke dalam dokumen PDF menggunakan variabel konfigurasi `TTE_SIGNATURE_TAG` (`#tagTTD#`), menjamin konsistensi saat proses penandatanganan elektronik.
+- In-memory lock `Set<string>` digunakan pada penandatanganan TTE untuk menangkal race condition akibat klik ganda pengguna.
 - Surat peringatan yang telah bertandatangan TTE berstatus *immutable*: regenerasi draft, edit metadata, atau hapus diblokir permanen.
+- Laporan CSV Excel menggunakan prefix `\uFEFF` (UTF-8 BOM) sehingga file langsung terbuka dengan rapi dan format karakter tepat di MS Excel tanpa konfigurasi delimiter manual.
+- Role `BUPATI` dibatasi secara ketat hanya pada pembacaan dasbor pimpinan (`/dashboard/pimpinan`) dan laporan agregasi (`/reports`); akses ke dasbor operasional Irban langsung ditolak (`403 Forbidden`).
 
 ## Tests / verification
 - `npm run lint` (backend) -> PASS (0 error, 0 warning)
 - `npm run build` (backend) -> PASS (NestJS production build berhasil tanpa error)
-- `npm test` (backend) -> PASS (20 test suites, 116 unit tests passed)
-- `npm run test:e2e` (backend) -> PASS (2 test suites, 6 e2e tests passed)
+- `npm test` (backend) -> PASS (23 test suites, 135 unit tests passed 100%)
+- `npm run test:e2e` (backend) -> PASS (3 test suites, 13 e2e tests passed 100%)
 
 ## Known issues / blockers
-- Tidak ada blocker untuk Checkpoint B17.
-- Integrasi TTE akan menyambungkan wrapper `tte_api` dengan endpoint `/sign-tte`.
+- Tidak ada blocker. Seluruh backend checkpoints (B01 s.d. B20) telah selesai 100%.
 
 ## External schema facts verified
 - EGOV: Read-only `egov.users` (username, nama_nip, email, unit_kerja).
@@ -163,10 +210,11 @@ B16 - Surat Peringatan & PDF (Completed) -> Next: B17 - TTE Integration
 - Database SIPATUH: Prisma client in sync, seed master data Irban, Jenis Pemeriksaan, Status Rekomendasi, dan Template Surat aktif.
 
 ## Next checkpoint
-- **B17 - TTE Integration**
-- Preconditions: Checkpoint B16 selesai, berkas PDF draft tersimpan dengan tag anchor TTE, URL & token wrapper tte_api siap dikonsumsi.
+- **F01 - Bootstrap Frontend (Next.js 14 App Router, Tailwind CSS, Shadcn UI, Axios, TanStack Query)**
+- Preconditions: Seluruh backend API contract B01-B20 siap dikonsumsi, skema autentikasi cookie JWT dan RBAC terpasang penuh.
 
 ## Do not forget
 - No writes to EGOV/SIMPEG
 - No secrets in repo/logs
 - Admin Irban scope enforced in backend
+- Bupati read-only executive access only

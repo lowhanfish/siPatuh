@@ -11,12 +11,14 @@ import {
   Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { RoleEnum } from '@prisma/client';
 import { SpDueEngineService } from './sp-due.service';
 import { SuratPeringatanService } from './surat-peringatan.service';
 import {
   CreateSuratPeringatanDto,
   QuerySuratPeringatanDto,
+  SignSuratPeringatanDto,
   UpdateSuratPeringatanDto,
 } from './dto/create-surat-peringatan.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -124,5 +126,36 @@ export class SuratPeringatanController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.suratPeringatanService.delete(id, user);
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post(':id/sign-tte')
+  @Roles(RoleEnum.SUPER_ADMIN, RoleEnum.ADMIN_IRBAN)
+  async signTte(
+    @Param('id') id: string,
+    @Body() dto: SignSuratPeringatanDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.suratPeringatanService.signTte(id, dto, user);
+  }
+
+  @Get(':id/signed')
+  @Roles(RoleEnum.SUPER_ADMIN, RoleEnum.ADMIN_IRBAN, RoleEnum.BUPATI)
+  async getSignedPdf(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res() res: Response,
+  ) {
+    const fileInfo = await this.suratPeringatanService.getSignedFileStream(
+      id,
+      user,
+    );
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${fileInfo.filename}"`,
+    );
+    res.setHeader('Content-Length', fileInfo.size);
+    fileInfo.stream.pipe(res);
   }
 }

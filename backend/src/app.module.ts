@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
@@ -16,6 +18,8 @@ import { RekomendasiModule } from './rekomendasi/rekomendasi.module';
 import { TindakLanjutModule } from './tindak-lanjut/tindak-lanjut.module';
 import { VerifikasiModule } from './verifikasi/verifikasi.module';
 import { SuratPeringatanModule } from './surat-peringatan/surat-peringatan.module';
+import { ReportsModule } from './reports/reports.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 import { validateConfig } from './config/env.validation';
@@ -26,6 +30,13 @@ import { validateConfig } from './config/env.validation';
       isGlobal: true,
       validate: validateConfig,
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     HealthModule,
     AuthModule,
     UsersModule,
@@ -37,12 +48,20 @@ import { validateConfig } from './config/env.validation';
     TindakLanjutModule,
     VerifikasiModule,
     SuratPeringatanModule,
+    ReportsModule,
+    DashboardModule,
     ExternalModule,
     FilesModule,
     AuditModule,
     PrismaModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

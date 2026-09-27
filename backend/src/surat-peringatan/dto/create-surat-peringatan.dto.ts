@@ -82,3 +82,13 @@ export class QuerySuratPeringatanDto {
   @IsString()
   tahun?: string;
 }
+
+export class SignSuratPeringatanDto {
+  @IsString()
+  @IsNotEmpty({ message: 'NIK penandatangan TTE wajib diisi' })
+  nik!: string;
+
+  @IsString()
+  @IsNotEmpty({ message: 'Passphrase penandatangan TTE wajib diisi' })
+  passphrase!: string;
+}
