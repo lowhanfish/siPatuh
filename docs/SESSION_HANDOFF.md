@@ -1,9 +1,18 @@
 # SESSION_HANDOFF
 
 ## Active checkpoint
-F06 - Unit Mapping & Pejabat UI (Completed) -> Next: F07 - Master Data UI
+F07 - Master Data UI (Completed) -> Next: F08 - LHP Management UI
 
 ## Completed in this session
+- **Checkpoint F07 (Master Data UI)**:
+  - Antarmuka Super Admin untuk pengelolaan 3 domain master data referensi SIPATUH pada rute `/master-data`.
+  - Tab Jenis Pemeriksaan: tabel daftar jenis pengawasan, filter pencarian & status aktif, modal tambah/edit, dan aksi toggle status aktif.
+  - Tab Status Rekomendasi: tabel terurut urutan prioritas, badge pembeda kategori global (`SELESAI` vs `BELUM_SELESAI`), modal tambah/edit nomor urut tampilan & kategori, serta aksi toggle status aktif.
+  - Tab Template Surat: tabel berfilter jenis surat (SP1, SP2, SP3, Pemberitahuan), indikator nomor versi dokumen, dan modal editor HTML lengkap dengan quick-insert tag variabel dinamis (`{{nomor_surat}}`, `{{nama_opd}}`, `{{nama_pejabat}}`, `#tagTTD#`).
+  - Pratinjau Dokumen Cetak (`SuratTemplatePreviewModal`): simulasi render dokumen surat dinamis dengan kop resmi Inspektorat Daerah Kab. Konawe Selatan dan anchor visual tanda tangan elektronik BSrE.
+  - Penegakan Versioning Non-Retroaktif: alert informasi di UI bahwa modifikasi konten HTML akan secara otomatis menerbitkan versi baru di backend (mis. v1 -> v2) sehingga integritas dokumen historis yang telah terbit sebelumnya tetap terlindungi.
+  - Unit tests komprehensif (`frontend/tests/master-data.test.ts`): 5 skenario uji mencakup validasi input, kepatuhan kategori enum, verifikasi anchor `#tagTTD#`, simulasi kenaikan versi non-retroaktif, dan filter taksonomi status.
+
 - **Checkpoint F06 (Unit Mapping & Pejabat UI)**:
   - Antarmuka Super Admin untuk pengelolaan pembagian Unit Kerja (OPD) SIMPEG ke wilayah kerja 5 Irban serta penatausahaan pejabat berwenang penerima surat di rute `/unit-kerja`.
   - Penjelajahan data Unit Kerja SIMPEG (`simpeg.unit_kerja` dengan filter `unit_induk = 1`) secara terintegrasi via endpoint `GET /api/v1/unit-kerja/simpeg`.
@@ -231,6 +240,9 @@ F06 - Unit Mapping & Pejabat UI (Completed) -> Next: F07 - Master Data UI
   - Unit tests lulus (`lhp.service.spec.ts`).
 
 ## Files changed
+- `frontend/features/master-data/`: Modul Master Data SIPATUH (types, API client, custom hooks TanStack Query, tabel dan modal Jenis Pemeriksaan, tabel dan modal Status Rekomendasi dengan pengelompokan kategori global, tabel Template Surat dengan filter jenis surat dan penomoran versi, modal editor HTML dengan quick insert tag variabel dinamis, modal pratinjau dokumen cetak, dan komponen container terintegrasi).
+- `frontend/app/(protected)/master-data/page.tsx`: Mengganti placeholder dengan rute aktif `MasterDataView`.
+- `frontend/tests/master-data.test.ts`: Pengujian unit untuk validasi field jenis pemeriksaan & status rekomendasi, verifikasi enum kategori `SELESAI`/`BELUM_SELESAI`, pengecekan anchor tanda tangan elektronik `#tagTTD#`, simulasi versioning non-retroaktif template, dan penyaringan taksonomi status.
 - `frontend/features/unit-kerja/`: Modul Pemetaan OPD dan Pejabat Unit Kerja (types, API client, custom hooks TanStack Query, tabel pemetaan OPD, modal assign Irban, badge penugasan, tabel pejabat OPD, modal tambah/edit pejabat, kartu resolusi otomatis penerima surat beraturan prioritas PLT/PLH, dan view container terintegrasi).
 - `frontend/app/(protected)/unit-kerja/page.tsx`: Mengganti placeholder dengan rute aktif `UnitKerjaManagementView`.
 - `frontend/tests/unit-kerja.test.ts`: Pengujian unit untuk validasi field pejabat, aturan tanggal, logika penentuan penerima prioritas PLT vs DEFINITIF, dan filter status mapping SIMPEG.
@@ -274,10 +286,13 @@ F06 - Unit Mapping & Pejabat UI (Completed) -> Next: F07 - Master Data UI
 - `backend/src/reports/`: Modul pelaporan ringkasan pengawasan, ekspor Excel (CSV dengan BOM UTF-8), dan ekspor PDF landscape PDFKit.
 - `backend/src/dashboard/`: Modul dasbor operasional Irban dan dasbor eksekutif pimpinan (Bupati) dengan agregasi data multi-Irban.
 - `backend/test/reports-dashboard.e2e-spec.ts`: E2E test suite untuk pengujian guard dan proteksi akses unauthenticated pada Reports, Dashboard, dan TTE.
-- `docs/SESSION_HANDOFF.md`: Update handoff Checkpoints B17 s.d. F06.
+- `docs/SESSION_HANDOFF.md`: Update handoff Checkpoints B17 s.d. F07.
 - `docs/API_CONTRACT.md`: Update rincian API contract untuk rute TTE, Reports, Dashboard, dan Hardening.
 
 ## Decisions made
+- Master Data dilindungi khusus untuk `SUPER_ADMIN` pada mutasi data; role lain (`ADMIN_IRBAN`, `BUPATI`) hanya dapat membaca atau menu disembunyikan sesuai hak akses shell navigasi.
+- Perubahan konten HTML pada Template Surat diatur secara non-retroaktif: sistem secara otomatis menerbitkan nomor versi baru dan mengarsipkan versi lama tanpa merusak dokumen yang sudah terbit sebelumnya.
+- Tag tanda tangan elektronik `#tagTTD#` diwajibkan pada template surat peringatan untuk memastikan kelancaran injeksi anchor sertifikat elektronik BSrE saat penerbitan SP.
 - Pemetaan OPD menggunakan satu relasi aktif per unit kerja SIMPEG (`simpeg.unit_kerja` dengan filter `unit_induk = 1`), konsisten dengan skema backend.
 - Pejabat Unit Kerja mendukung multi-penugasan (misalnya seorang ASN menjabat definitif di OPD A sekaligus PLT di OPD B).
 - Prioritas penugasan surat peringatan dihitung otomatis di backend: PLT/PLH mendahului definitif, dan jika terdapat lebih dari satu kandidat aktif, UI menampilkan indikasi kebutuhan seleksi manual.
@@ -314,7 +329,7 @@ F06 - Unit Mapping & Pejabat UI (Completed) -> Next: F07 - Master Data UI
 - Role `BUPATI` dibatasi secara ketat hanya pada pembacaan dasbor pimpinan (`/dashboard/pimpinan`) dan laporan agregasi (`/reports`); akses ke dasbor operasional Irban langsung ditolak (`403 Forbidden`).
 
 ## Tests / verification
-- `npm test` (frontend) -> PASS (24 tests: auth client/refresh, safe redirect, visibilitas menu, akses route, default route role, format Rupiah/persen/tanggal, dynamic status breakdown, validasi aktivasi Irban, query builder filter user, zero password leak, validasi pejabat, resolusi PLT/definitif, dan pemetaan OPD)
+- `npm test` (frontend) -> PASS (29 tests: auth client/refresh, safe redirect, visibilitas menu, akses route, default route role, format Rupiah/persen/tanggal, dynamic status breakdown, validasi aktivasi Irban, query builder filter user, zero password leak, validasi pejabat, resolusi PLT/definitif, pemetaan OPD, validasi master data, versioning template, dan anchor TTE)
 - `npm run lint` (frontend) -> PASS (0 error, 0 warning)
 - `npm run build` (frontend) -> PASS (Next.js production build dan TypeScript compile sukses)
 - `npm run lint` (backend) -> PASS (0 error, 0 warning)
@@ -323,9 +338,9 @@ F06 - Unit Mapping & Pejabat UI (Completed) -> Next: F07 - Master Data UI
 - `npm run test:e2e` (backend) -> PASS (3 test suites, 13 e2e tests passed 100%)
 
 ## Known issues / blockers
-- Tidak ada blocker untuk melanjutkan ke F07.
+- Tidak ada blocker untuk melanjutkan ke F08.
 - Login menggunakan akun EGOV nyata belum dieksekusi karena checkpoint ini tidak menggunakan kredensial pengguna atau memodifikasi external database. Kontrak dan perilaku client diverifikasi melalui controller backend, unit test, build, dan visual QA.
-- Seluruh backend checkpoints (B01 s.d. B20) serta F01-F06 telah selesai.
+- Seluruh backend checkpoints (B01 s.d. B20) serta F01-F07 telah selesai.
 
 ## External schema facts verified
 - EGOV: Read-only `egov.users` (username, nama_nip, email, unit_kerja).
@@ -333,12 +348,13 @@ F06 - Unit Mapping & Pejabat UI (Completed) -> Next: F07 - Master Data UI
 - Database SIPATUH: Prisma client in sync, seed master data Irban, Jenis Pemeriksaan, Status Rekomendasi, dan Template Surat aktif.
 
 ## Next checkpoint
-- **F07 - Master Data UI**
-- Implementasi antarmuka Super Admin untuk pengelolaan referensi master data SIPATUH pada rute `/master-data`:
-  - Jenis Pemeriksaan (Ketaatan, Kinerja, DTT, Investigatif).
-  - Status Rekomendasi dengan kategori stabil `SELESAI` vs `BELUM_SELESAI`.
-  - Surat Template dengan versioning otomatis (editor konten HTML/template variabel surat).
-- Preconditions terpenuhi: endpoint `/master-data/*` sudah lengkap dan teruji di backend.
+- **F08 - LHP Management UI**
+- Implementasi antarmuka pengelolaan dokumen LHP pada rute `/lhp`:
+  - Daftar LHP ter-scope Irban dengan filter tahun pemeriksaan, pencarian nomor LHP / unit kerja, dan pagination/sorting.
+  - Form Pembuatan LHP baru (pemilihan Unit Kerja SIMPEG terpetakan, Jenis Pemeriksaan aktif, tanggal LHP, tanggal diterima, dan nomor LHP).
+  - Upload file fisik PDF LHP aman via multipart stream ke backend.
+  - Detail LHP, download berkas PDF terproteksi, aksi Close LHP (oleh Admin Irban pemilik wilayah atau Super Admin) & Reopen LHP (eksklusif Super Admin dengan alasan wajib).
+- Preconditions terpenuhi: endpoint `/lhp/*` dan modul file upload backend sudah lengkap dan teruji.
 
 ## Do not forget
 - No writes to EGOV/SIMPEG
