@@ -163,18 +163,37 @@ Seluruh endpoint backend menggunakan basis URL `/api/v1` dan mengembalikan respo
 * `GET /api/v1/tindak-lanjut/:tindakLanjutId/verifikasi`
   * Menampilkan riwayat verifikasi inspektur atas tindak lanjut terkait.
 
-### 2.10 Surat Peringatan Due Engine (`/surat-peringatan`)
+### 2.10 Surat Peringatan & Draft PDF (`/surat-peringatan`)
 * `GET /api/v1/surat-peringatan/due`
   * Menampilkan daftar LHP yang memenuhi kriteria penerbitan Surat Peringatan (SP1, SP2, SP3) berdasarkan umur kalender sejak `tanggal_diterima_lhp`.
   * Filter query: `?jenis_sp=SP1|SP2|SP3&irban_id=...`
   * Engine bersifat preview/kalkulasi murni (tidak menulis ke database).
+* `GET /api/v1/surat-peringatan/due/:lhpId`
+  * Mengevaluasi kelayakan penerbitan SP untuk spesifik satu LHP.
+* `POST /api/v1/surat-peringatan` (ADMIN_IRBAN, SUPER_ADMIN)
+  * Body: `{ "lhp_id": "...", "level": "SP1|SP2|SP3", "nomor_surat": "...", "tanggal_surat": "YYYY-MM-DD", "pejabat_id": "..." (opsional), "template_id": "..." (opsional) }`
+  * Menerbitkan SP: snapshot pejabat, snapshot rekomendasi outstanding, generate berkas PDF draft resmi dengan anchor tag TTE `#tagTTD#` dari konfigurasi.
+* `GET /api/v1/surat-peringatan`
+  * Filter query: `?lhp_id=...&level=SP1|SP2|SP3&irban_id=...&tahun=2026`
+  * Menampilkan daftar SP ter-scope Irban.
+* `GET /api/v1/surat-peringatan/:id`
+  * Detail SP lengkap dengan snapshot rekomendasi items, data LHP, dan nama OPD dari SIMPEG.
+* `GET /api/v1/surat-peringatan/:id/draft`
+  * Stream unduhan / inline preview berkas PDF draft resmi bertanda tag visual TTE.
+* `PATCH /api/v1/surat-peringatan/:id` (ADMIN_IRBAN pemilik / SUPER_ADMIN)
+  * Body: `{ "nomor_surat": "...", "tanggal_surat": "YYYY-MM-DD", "pejabat_id": "..." }`
+  * Mengubah data draft sebelum signed. Ditolak jika surat sudah di-TTE.
+* `POST /api/v1/surat-peringatan/:id/regenerate-draft` (ADMIN_IRBAN pemilik / SUPER_ADMIN)
+  * Merender ulang berkas PDF draft dengan template/data terbaru. Ditolak jika surat sudah di-TTE.
+* `DELETE /api/v1/surat-peringatan/:id` (ADMIN_IRBAN pemilik / SUPER_ADMIN)
+  * Menghapus draft SP yang belum ditandatangani. Ditolak keras jika surat sudah di-TTE (immutable).
 
 ---
 
-### 2.11 Domain Mendatang (Checkpoint B16 s.d. B20)
-* `POST /api/v1/surat-peringatan` & PDF generation (B16)
+### 2.11 Domain Mendatang (Checkpoint B17 s.d. B20)
 * `POST /api/v1/surat-peringatan/:id/sign-tte` (B17)
 * `GET /api/v1/reports` & export (B18)
 * `GET /api/v1/dashboard/irban` & `GET /api/v1/dashboard/pimpinan` (B19)
 * Backend Hardening & Final Tests (B20)
+
 

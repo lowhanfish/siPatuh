@@ -1,9 +1,29 @@
 # SESSION_HANDOFF
 
 ## Active checkpoint
-B15 - SP Due Engine (Completed) -> Next: B16 - Surat Peringatan & PDF
+B16 - Surat Peringatan & PDF (Completed) -> Next: B17 - TTE Integration
 
 ## Completed in this session
+- **Checkpoint B16 (Surat Peringatan & PDF)**:
+  - Penerbitan SP1/SP2/SP3 ter-scope Irban (`POST /api/v1/surat-peringatan`):
+    - Nomor surat manual dan diverifikasi unik secara sistem (`@unique`).
+    - Tanggal surat manual dengan validasi batas umur LHP minimal (SP1 $\ge 30$, SP2 $\ge 45$, SP3 $\ge 60$ hari kalender sejak `tanggal_diterima_lhp`).
+    - Enforce 1 level per LHP (`@@unique([lhp_id, level])`).
+    - Validasi urutan eskalasi: SP2 mensyaratkan SP1, SP3 mensyaratkan SP2.
+    - Validasi LHP terbuka (`closed_at == null`) dan memiliki rekomendasi outstanding (`BELUM_SELESAI`).
+  - Snapshotting Permanen:
+    - Snapshot nama Unit Kerja OPD, nama penerima, NIP, dan jabatan pejabat saat surat dibuat (kebal terhadap perubahan mutasi pejabat/OPD di masa depan).
+    - Snapshot seluruh rekomendasi outstanding ke tabel `SuratPeringatanItem` beserta uraian dan nilai nominalnya.
+  - PDF Generation & TTE Anchor Injection:
+    - `SpPdfGeneratorService` menggunakan PDFKit untuk memproduksi berkas PDF resmi standar Pemkab Konawe Selatan lengkap dengan kop dinas, nomor, sifat, perihal, tujuan, narasi template dinamis, tabel temuan & rekomendasi, serta blok tanda tangan.
+    - Sisipan visual anchor/tag TTE yang bersumber murni dari konfigurasi backend (`TTE_SIGNATURE_TAG` / `#tagTTD#`), bukan string liar tersebar di kode.
+    - Penyimpanan file draft PDF di direktori aman `uploads/surat-peringatan/draft/`.
+    - Endpoint streaming unduhan/preview PDF draft (`GET /api/v1/surat-peringatan/:id/draft`).
+  - Regenerasi & Perlindungan Imutabilitas (Immutability):
+    - Surat draft dapat di-regenerate (`POST /api/v1/surat-peringatan/:id/regenerate-draft`), di-update, atau dihapus selama belum ditandatangani.
+    - Begitu surat berhasil di-TTE (`signed_at != null` atau `signed_path != null`), surat berstatus *immutable*: regenerasi, update, dan delete diblokir secara permanen.
+  - Unit tests: `sp-pdf.service.spec.ts` (6 tests) & `surat-peringatan.service.spec.ts` (14 tests) -> 100% passed.
+
 - **Checkpoint B11 (Temuan & Rekomendasi)**:
   - CRUD Temuan (`/api/v1/lhp/:lhpId/temuan`, `/api/v1/temuan/:id`):
     - Penomoran urut otomatis per LHP (`nomor_temuan` 1..n).
@@ -108,15 +128,14 @@ B15 - SP Due Engine (Completed) -> Next: B16 - Surat Peringatan & PDF
   - Unit tests lulus (`lhp.service.spec.ts`).
 
 ## Files changed
-- `backend/src/temuan/`: `dto/temuan.dto.ts`, `temuan.service.ts`, `temuan.controller.ts`, `temuan.module.ts`, `temuan.service.spec.ts`.
-- `backend/src/rekomendasi/`: `dto/rekomendasi.dto.ts`, `rekomendasi.service.ts`, `rekomendasi.controller.ts`, `rekomendasi.module.ts`, `rekomendasi.service.spec.ts`.
-- `backend/src/tindak-lanjut/`: `dto/tindak-lanjut.dto.ts`, `tindak-lanjut.service.ts`, `tindak-lanjut.controller.ts`, `tindak-lanjut.module.ts`, `tindak-lanjut.service.spec.ts`.
-- `backend/src/verifikasi/`: `dto/create-verifikasi.dto.ts`, `verifikasi.service.ts`, `verifikasi.controller.ts`, `verifikasi.module.ts`, `verifikasi.service.spec.ts`.
-- `backend/src/surat-peringatan/`: `sp-due.service.ts`, `surat-peringatan.controller.ts`, `surat-peringatan.module.ts`, `sp-due.service.spec.ts`.
-- `backend/src/lhp/`: `dto/close-reopen-lhp.dto.ts`, update `lhp.service.ts`, `lhp.controller.ts`, `lhp.service.spec.ts`.
-- `backend/src/app.module.ts`: Pendaftaran modul `TemuanModule`, `RekomendasiModule`, `TindakLanjutModule`, `VerifikasiModule`, `SuratPeringatanModule`.
-- `docs/SESSION_HANDOFF.md`: Update handoff B11 s.d. B15.
-- `docs/API_CONTRACT.md`: Update rincian endpoint B11 s.d. B15.
+- `backend/src/surat-peringatan/`:
+  - `sp-pdf.service.ts` & `sp-pdf.service.spec.ts`: PDFKit generator dinas resmi dengan anchor tag TTE `#tagTTD#` dari konfigurasi.
+  - `surat-peringatan.service.ts` & `surat-peringatan.service.spec.ts`: Logika snapshotting pejabat & item rekomendasi, validasi umur & sekuensial SP, regenerasi draft, dan proteksi imutabilitas.
+  - `surat-peringatan.controller.ts`: Endpoint CRUD SP, preview/download stream draft PDF, regenerasi draft.
+  - `dto/create-surat-peringatan.dto.ts`: DTO validasi pembuatan, update, dan query surat peringatan.
+  - `surat-peringatan.module.ts`: Wiring modul dan export services.
+- `docs/SESSION_HANDOFF.md`: Update handoff Checkpoint B16.
+- `docs/API_CONTRACT.md`: Update rincian endpoint Surat Peringatan & draft PDF.
 
 ## Decisions made
 - Scope Irban selalu dipaksakan dari token JWT backend pada `IrbanScopeService.resolveEffectiveIrbanId()` sehingga manipulasi parameter query client diabaikan total untuk `ADMIN_IRBAN`.
@@ -125,16 +144,18 @@ B15 - SP Due Engine (Completed) -> Next: B16 - Surat Peringatan & PDF
 - Hard delete LHP dilarang jika sudah memiliki surat peringatan bertandatangan digital (TTE).
 - 100% pelunasan finansial pada tindak lanjut tidak mengubah status rekomendasi menjadi "Selesai/Sesuai" secara otomatis. Penentuan status sepenuhnya wewenang verifikator manusia (inspektur).
 - Kalkulasi SP Due engine strictly menggunakan `tanggal_diterima_lhp` dalam hari kalender murni.
+- Anchor TTE disuntikkan secara dinamis ke dalam dokumen PDF menggunakan variabel konfigurasi `TTE_SIGNATURE_TAG` (`#tagTTD#`), menjamin konsistensi saat proses penandatanganan elektronik di Checkpoint B17.
+- Surat peringatan yang telah bertandatangan TTE berstatus *immutable*: regenerasi draft, edit metadata, atau hapus diblokir permanen.
 
 ## Tests / verification
 - `npm run lint` (backend) -> PASS (0 error, 0 warning)
 - `npm run build` (backend) -> PASS (NestJS production build berhasil tanpa error)
-- `npm test` (backend) -> PASS (18 test suites, 96 unit tests passed)
+- `npm test` (backend) -> PASS (20 test suites, 116 unit tests passed)
 - `npm run test:e2e` (backend) -> PASS (2 test suites, 6 e2e tests passed)
 
 ## Known issues / blockers
-- Tidak ada blocker untuk Checkpoint B16.
-- TTE staging/production URL & TOKEN wrapper akan dikonfigurasi saat Checkpoint B17.
+- Tidak ada blocker untuk Checkpoint B17.
+- Integrasi TTE akan menyambungkan wrapper `tte_api` dengan endpoint `/sign-tte`.
 
 ## External schema facts verified
 - EGOV: Read-only `egov.users` (username, nama_nip, email, unit_kerja).
@@ -142,8 +163,8 @@ B15 - SP Due Engine (Completed) -> Next: B16 - Surat Peringatan & PDF
 - Database SIPATUH: Prisma client in sync, seed master data Irban, Jenis Pemeriksaan, Status Rekomendasi, dan Template Surat aktif.
 
 ## Next checkpoint
-- **B16 - Surat Peringatan & PDF**
-- Preconditions: Checkpoint B15 selesai, SP Due engine aktif, template surat master data tersedia, PDF generator engine siap dikonfigurasi.
+- **B17 - TTE Integration**
+- Preconditions: Checkpoint B16 selesai, berkas PDF draft tersimpan dengan tag anchor TTE, URL & token wrapper tte_api siap dikonsumsi.
 
 ## Do not forget
 - No writes to EGOV/SIMPEG
