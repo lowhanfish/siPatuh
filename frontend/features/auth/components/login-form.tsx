@@ -43,7 +43,6 @@ export function LoginForm({ redirectTo }: { redirectTo: string | null }) {
         </label>
         <input
           autoComplete="username"
-          autoFocus
           className="form-input"
           disabled={loginMutation.isPending}
           id="identifier"

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import {
@@ -58,8 +59,8 @@ function NavigationLink({ item, pathname }: { item: NavigationItem; pathname: st
       aria-current={active ? "page" : undefined}
       className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
         active
-          ? "bg-brand text-white shadow-brand"
-          : "text-slate-300 hover:bg-white/8 hover:text-white"
+          ? "bg-accent text-ink shadow-brand"
+          : "text-stone-300 hover:bg-white/8 hover:text-white"
       }`}
       href={item.href}
     >
@@ -84,12 +85,12 @@ function SidebarContent({ user, pathname }: { user: AuthUser; pathname: string }
         className="flex items-center gap-3 border-b border-white/10 px-5 py-5 text-white"
         href={getDefaultRouteForRole(user.role)}
       >
-        <span className="grid size-10 place-items-center rounded-xl bg-white/12 text-sm font-bold tracking-wide ring-1 ring-white/20">
-          SP
+        <span className="grid size-11 place-items-center rounded-xl bg-white text-sm font-bold tracking-wide shadow-sm">
+          <Image alt="Logo Inspektorat" className="h-9 w-auto object-contain" height={40} src="/brand/inspektorat.png" width={34} />
         </span>
         <span>
           <span className="block font-bold tracking-tight">SIPATUH</span>
-          <span className="block text-[11px] text-blue-200">Inspektorat Konawe Selatan</span>
+          <span className="block text-[11px] text-stone-300">Inspektorat Konawe Selatan</span>
         </span>
       </Link>
 
@@ -100,7 +101,7 @@ function SidebarContent({ user, pathname }: { user: AuthUser; pathname: string }
 
           return (
             <div className="mb-6" key={section}>
-              <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-300">
+              <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-amber-300">
                 {section}
               </p>
               <div className="space-y-1">
@@ -116,9 +117,9 @@ function SidebarContent({ user, pathname }: { user: AuthUser; pathname: string }
       <div className="border-t border-white/10 p-4">
         <div className="rounded-2xl bg-white/8 p-3 ring-1 ring-white/10">
           <p className="truncate text-sm font-semibold text-white">{user.nama}</p>
-          <p className="mt-1 truncate text-xs text-blue-200">{roleLabels[user.role]}</p>
+          <p className="mt-1 truncate text-xs text-stone-300">{roleLabels[user.role]}</p>
           {user.irban?.nama ? (
-            <p className="mt-1 truncate text-[11px] text-blue-300">{user.irban.nama}</p>
+            <p className="mt-1 truncate text-[11px] text-amber-300">{user.irban.nama}</p>
           ) : null}
         </div>
       </div>
@@ -188,7 +189,7 @@ export function AppShell({ children, user }: { children: ReactNode; user: AuthUs
           >
             <button
               aria-label="Tutup menu"
-              className="absolute right-3 top-3 z-10 grid size-9 place-items-center rounded-xl text-blue-100 transition hover:bg-white/10 hover:text-white"
+              className="absolute right-3 top-3 z-10 grid size-9 place-items-center rounded-xl text-stone-200 transition hover:bg-white/10 hover:text-white"
               onClick={closeMobileNavigation}
               type="button"
             >
@@ -196,7 +197,7 @@ export function AppShell({ children, user }: { children: ReactNode; user: AuthUs
             </button>
             <SidebarContent pathname={pathname} user={user} />
             <button
-              className="mx-4 mb-4 flex items-center justify-center gap-2 rounded-xl border border-white/15 px-3 py-2.5 text-sm font-semibold text-blue-100 transition hover:bg-white/10 hover:text-white disabled:opacity-60"
+              className="mx-4 mb-4 flex items-center justify-center gap-2 rounded-xl border border-white/15 px-3 py-2.5 text-sm font-semibold text-stone-200 transition hover:bg-white/10 hover:text-white disabled:opacity-60"
               disabled={logoutMutation.isPending}
               onClick={handleLogout}
               type="button"

@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   },
   description:
     "Sistem Informasi Pemantauan Hasil Pemerintahan Kabupaten Konawe Selatan",
+  icons: {
+    icon: "/brand/inspektorat.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

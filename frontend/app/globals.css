@@ -1,16 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --canvas: #f4f7fb;
+  --canvas: #f7f4ec;
   --surface: #ffffff;
-  --ink: #14243a;
-  --muted: #66758a;
-  --line: #dce4ee;
-  --line-strong: #9aa9bb;
-  --brand: #145aa3;
-  --brand-strong: #0d467f;
-  --brand-soft: #e8f2fd;
-  --sidebar: #102f53;
+  --ink: #191b20;
+  --muted: #68665f;
+  --line: #e4ded0;
+  --line-strong: #aaa394;
+  --brand: #9b6200;
+  --brand-strong: #704600;
+  --brand-soft: #fff1b8;
+  --accent: #ffc928;
+  --sidebar: #191b20;
   --success: #1f9d68;
   --danger: #b42318;
   --danger-soft: #feeceb;
@@ -26,15 +27,16 @@
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-soft: var(--brand-soft);
+  --color-accent: var(--accent);
   --color-sidebar: var(--sidebar);
   --color-success: var(--success);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --shadow-card: 0 12px 30px rgb(29 52 82 / 0.06);
-  --shadow-panel: 0 24px 70px rgb(29 52 82 / 0.12);
-  --shadow-brand: 0 12px 24px rgb(20 90 163 / 0.24);
+  --shadow-card: 0 12px 30px rgb(54 43 20 / 0.07);
+  --shadow-panel: 0 24px 70px rgb(54 43 20 / 0.14);
+  --shadow-brand: 0 12px 24px rgb(155 98 0 / 0.22);
 }
 
 * {
@@ -47,7 +49,7 @@ html {
 
 body {
   margin: 0;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
 button,
@@ -63,7 +65,7 @@ a {
   height: 38rem;
   transform: translateX(-50%);
   border-radius: 9999px;
-  background: radial-gradient(circle, rgb(70 149 226 / 0.18), transparent 68%);
+  background: radial-gradient(circle, rgb(255 201 40 / 0.24), transparent 68%);
   pointer-events: none;
 }
 
@@ -102,7 +104,7 @@ a {
   justify-content: center;
   border: 0;
   border-radius: 0.75rem;
-  background: var(--brand);
+  background: var(--ink);
   color: white;
   cursor: pointer;
   font-size: 0.875rem;
@@ -113,7 +115,7 @@ a {
 }
 
 .button-primary:hover {
-  background: var(--brand-strong);
+  background: #000000;
 }
 
 .button-primary:active {
@@ -122,7 +124,7 @@ a {
 
 .button-primary:focus-visible,
 a:focus-visible {
-  outline: 3px solid rgb(20 90 163 / 0.3);
+  outline: 3px solid rgb(155 98 0 / 0.32);
   outline-offset: 3px;
 }
 
@@ -153,12 +155,95 @@ a:focus-visible {
 
 .form-input:focus {
   border-color: var(--brand);
-  box-shadow: 0 0 0 3px rgb(20 90 163 / 0.12);
+  box-shadow: 0 0 0 3px rgb(155 98 0 / 0.12);
 }
 
 .form-input:disabled {
   cursor: not-allowed;
   opacity: 0.65;
+}
+
+.hero-grid {
+  background-color: #fffaf0;
+  background-image:
+    linear-gradient(rgb(29 28 24 / 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(29 28 24 / 0.035) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+.hero-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+.hero-orb-one {
+  right: -9rem;
+  top: 4rem;
+  width: 32rem;
+  height: 32rem;
+  background: rgb(255 201 40 / 0.22);
+}
+
+.hero-orb-two {
+  left: -14rem;
+  bottom: -16rem;
+  width: 34rem;
+  height: 34rem;
+  border: 5rem solid rgb(255 201 40 / 0.11);
+}
+
+.landing-primary,
+.landing-secondary {
+  display: inline-flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border-radius: 1rem;
+  padding: 0.875rem 1.35rem;
+  font-size: 0.875rem;
+  font-weight: 750;
+  text-decoration: none;
+  transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+
+.landing-primary {
+  background: var(--ink);
+  color: white;
+  box-shadow: 0 14px 30px rgb(25 27 32 / 0.18);
+}
+
+.landing-primary:hover,
+.landing-secondary:hover {
+  transform: translateY(-2px);
+}
+
+.landing-primary:hover { background: #000; }
+
+.landing-secondary {
+  border: 1px solid rgb(25 27 32 / 0.18);
+  background: rgb(255 255 255 / 0.56);
+  color: var(--ink);
+}
+
+.landing-secondary:hover { border-color: var(--brand); }
+.eyebrow-light { color: #ffd24a; }
+
+.landing-card {
+  min-height: 19rem;
+  border: 1px solid rgb(25 27 32 / 0.1);
+  border-radius: 1.75rem;
+  background: white;
+  padding: 2rem;
+  box-shadow: var(--shadow-card);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.landing-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-panel);
 }
 
 @media (max-width: 520px) {

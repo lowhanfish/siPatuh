@@ -220,9 +220,10 @@ function LhpCreateModalContent({
           </div>
         )}
 
-        {/* Warning jika tidak ada Unit Kerja valid */}
-        {eligibleUnits.length === 0 ? (
+        {/* Warning jika tidak ada Unit Kerja valid (hanya untuk Admin Irban yang belum memiliki pemetaan) */}
+        {currentUser?.role !== "SUPER_ADMIN" && eligibleUnits.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-center">
+
             <ShieldAlert className="mx-auto size-8 text-amber-600" />
             <h4 className="mt-2 text-sm font-bold text-amber-900">
               Tidak Ada Unit Kerja yang Tersedia
