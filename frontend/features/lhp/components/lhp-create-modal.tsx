@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
+
 import { toast } from "sonner";
+
 import {
   AlertCircle,
   Calendar,
@@ -229,15 +232,25 @@ function LhpCreateModalContent({
                 ? "Belum ada Unit Kerja SIMPEG yang dipetakan ke wilayah Irban Anda. Hubungi Super Admin untuk melakukan pemetaan OPD di menu Administrasi Wilayah."
                 : "Belum ada Unit Kerja SIMPEG yang dipetakan ke Irban. Silakan lakukan pemetaan di menu Unit Kerja & Pejabat terlebih dahulu."}
             </p>
-            <div className="mt-5">
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-xl border border-amber-300 bg-surface px-4 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-colors"
+                className="rounded-xl border border-amber-300 bg-surface px-4 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-colors cursor-pointer"
               >
                 Tutup
               </button>
+              {currentUser?.role === "SUPER_ADMIN" && (
+                <Link
+                  href="/unit-kerja"
+                  onClick={onClose}
+                  className="rounded-xl bg-brand text-white px-4 py-2 text-xs font-bold hover:bg-brand/90 transition-colors shadow-xs"
+                >
+                  Buka Menu Pemetaan OPD
+                </Link>
+              )}
             </div>
+
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-6 space-y-5">
