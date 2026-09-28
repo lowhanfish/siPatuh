@@ -122,46 +122,48 @@ function LhpEditModalContent({
       role="dialog"
       aria-modal="true"
       aria-labelledby="lhp-edit-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 overflow-y-auto bg-ink/40 backdrop-blur-xs p-4 sm:p-6"
     >
-      <div className="w-full max-w-xl my-8 rounded-3xl border border-line bg-surface p-6 shadow-panel sm:p-8">
-        {/* Header Modal */}
-        <div className="flex items-center justify-between border-b border-line pb-4">
-          <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-2xl bg-brand-soft text-brand">
-              <Edit2 aria-hidden size={18} />
-            </span>
-            <div>
-              <h2 id="lhp-edit-title" className="text-lg font-bold text-ink sm:text-xl">
-                Ubah Metadata LHP
-              </h2>
-              <p className="text-xs text-muted">
-                {lhp.unit_kerja_nama} • {lhp.irban.nama}
-              </p>
+      <div className="flex min-h-full items-start sm:items-center justify-center py-4 sm:py-8">
+        <div className="w-full max-w-xl rounded-3xl border border-line bg-surface p-6 shadow-panel sm:p-8 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col my-auto">
+          {/* Header Modal */}
+          <div className="shrink-0 flex items-center justify-between border-b border-line pb-4">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-2xl bg-brand-soft text-brand">
+                <Edit2 aria-hidden size={18} />
+              </span>
+              <div>
+                <h2 id="lhp-edit-title" className="text-lg font-bold text-ink sm:text-xl">
+                  Ubah Metadata LHP
+                </h2>
+                <p className="text-xs text-muted">
+                  {lhp.unit_kerja_nama} • {lhp.irban.nama}
+                </p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-line bg-surface p-2 text-muted hover:text-ink transition-colors cursor-pointer"
+            >
+              <X size={16} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-line bg-surface p-2 text-muted hover:text-ink transition-colors cursor-pointer"
-          >
-            <X size={16} />
-          </button>
-        </div>
 
-        {/* Error Banner */}
-        {formError && (
-          <div className="mt-4 flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800">
-            <AlertCircle className="size-4 shrink-0 mt-0.5 text-rose-600" />
-            <div className="space-y-1">
-              <p className="font-bold">Gagal Memperbarui LHP</p>
-              <p className="text-rose-700">{formError}</p>
+          {/* Error Banner */}
+          {formError && (
+            <div className="shrink-0 mt-4 flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800">
+              <AlertCircle className="size-4 shrink-0 mt-0.5 text-rose-600" />
+              <div className="space-y-1">
+                <p className="font-bold">Gagal Memperbarui LHP</p>
+                <p className="text-rose-700">{formError}</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          {/* Nomor LHP */}
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden mt-4">
+            <div className="overflow-y-auto pr-1 -mr-1 py-1 space-y-4 flex-1">
+              {/* Nomor LHP */}
           <div>
             <label className="block text-xs font-bold text-ink">
               Nomor Dokumen LHP <span className="text-rose-500">*</span>
@@ -253,32 +255,34 @@ function LhpEditModalContent({
               />
             </div>
           </div>
+            </div>
 
-          {/* Tombol Aksi */}
-          <div className="flex items-center justify-end gap-3 border-t border-line pt-4 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-line bg-surface px-4 py-2 text-xs font-semibold text-muted hover:text-ink transition-colors cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={updateMutation.isPending}
-              className="button-primary text-xs font-bold shadow-xs flex items-center gap-1.5"
-            >
-              {updateMutation.isPending ? (
-                <>
-                  <Loader2 aria-hidden className="animate-spin" size={14} />
-                  <span>Menyimpan...</span>
-                </>
-              ) : (
-                <span>Simpan Perubahan</span>
-              )}
-            </button>
-          </div>
-        </form>
+            {/* Tombol Aksi - Fixed at Bottom */}
+            <div className="shrink-0 flex items-center justify-end gap-3 border-t border-line pt-4 mt-4 bg-surface">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-xl border border-line bg-surface px-4 py-2 text-xs font-semibold text-muted hover:text-ink transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="button-primary text-xs font-bold shadow-xs flex items-center gap-1.5"
+              >
+                {updateMutation.isPending ? (
+                  <>
+                    <Loader2 aria-hidden className="animate-spin" size={14} />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <span>Simpan Perubahan</span>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
