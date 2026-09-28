@@ -36,33 +36,56 @@ export class LhpService {
   ) {
     this.irbanScopeService.assertCanMutate(currentUser);
 
-    // 1. Verifikasi keberadaan dan keabsahan Unit Kerja di SIMPEG (unit_induk = 1)
+    // 1. Verifikasi keberadaan dan keabsahan Unit Kerja / Instansi di SIMPEG
+    let targetName = '';
+    let parentInstansiId = '';
     const unitKerja = await this.simpegAdapter.findUnitKerjaById(
       dto.simpeg_unit_kerja_id,
     );
-    if (!unitKerja) {
-      throw new BadRequestException(
-        `Unit Kerja SIMPEG ID ${dto.simpeg_unit_kerja_id} tidak valid atau bukan unit induk`,
-      );
+    if (unitKerja) {
+      targetName = unitKerja.ref_instansi
+        ? `${unitKerja.unit_kerja} (${unitKerja.ref_instansi})`
+        : unitKerja.unit_kerja;
+      parentInstansiId = unitKerja.instansi;
+    } else {
+      const instansi =
+        typeof this.simpegAdapter.findInstansiById === 'function'
+          ? await this.simpegAdapter.findInstansiById(dto.simpeg_unit_kerja_id)
+          : null;
+      if (instansi) {
+        targetName = instansi.instansi;
+        parentInstansiId = instansi.id;
+      } else {
+        throw new BadRequestException(
+          `Unit Kerja / Instansi SIMPEG ID ${dto.simpeg_unit_kerja_id} tidak valid`,
+        );
+      }
     }
 
-    // 2. Cek pembagian Irban untuk Unit Kerja tersebut di database SIPATUH
-    const mapping = await this.prisma.irbanUnitKerja.findUnique({
+    // 2. Cek pembagian Irban: periksa apakah Unit Kerja atau Instansi induknya telah dipetakan ke Irban
+    let mapping = await this.prisma.irbanUnitKerja.findUnique({
       where: { simpeg_unit_kerja_id: dto.simpeg_unit_kerja_id },
       include: { irban: true },
     });
 
+    if (!mapping && parentInstansiId) {
+      mapping = await this.prisma.irbanUnitKerja.findUnique({
+        where: { simpeg_unit_kerja_id: parentInstansiId },
+        include: { irban: true },
+      });
+    }
+
     if (!mapping) {
       throw new BadRequestException(
-        `Unit Kerja "${unitKerja.unit_kerja}" belum dipetakan ke wilayah Irban manapun. Hubungi Super Admin.`,
+        `Unit Kerja / Instansi "${targetName}" belum dipetakan ke wilayah Irban manapun. Hubungi Super Admin.`,
       );
     }
 
-    // 3. Jika user adalah ADMIN_IRBAN, pastikan unit kerja tersebut berada di bawah Irban miliknya
+    // 3. Jika user adalah ADMIN_IRBAN, pastikan unit kerja / instansi tersebut berada di bawah Irban miliknya
     if (currentUser.role === RoleEnum.ADMIN_IRBAN) {
       if (currentUser.irban_id !== mapping.irban_id) {
         throw new ForbiddenException(
-          `Akses ditolak: Unit Kerja "${unitKerja.unit_kerja}" berada di bawah wewenang ${mapping.irban.nama}, bukan wilayah Irban Anda`,
+          `Akses ditolak: "${targetName}" berada di bawah wewenang ${mapping.irban.nama}, bukan wilayah Irban Anda`,
         );
       }
     }
@@ -138,7 +161,7 @@ export class LhpService {
         nomor_lhp: lhp.nomor_lhp,
         irban_id_snapshot: lhp.irban_id,
         simpeg_unit_kerja_id: lhp.simpeg_unit_kerja_id,
-        unit_kerja_nama: unitKerja.unit_kerja,
+        unit_kerja_nama: targetName,
         has_file: !!file,
       },
     });
@@ -146,8 +169,9 @@ export class LhpService {
     return {
       ...lhp,
       file_path: uploadedFilePath,
-      unit_kerja_nama: unitKerja.unit_kerja,
+      unit_kerja_nama: targetName,
     };
+
   }
 
   /**
@@ -216,9 +240,22 @@ export class LhpService {
       this.prisma.lhp.count({ where }),
     ]);
 
-    // Ambil nama unit kerja dari SIMPEG untuk melengkapi data tampilan
-    const simpegUnits = await this.simpegAdapter.findUnitKerjaInduk();
-    const unitNameMap = new Map(simpegUnits.map((u) => [u.id, u.unit_kerja]));
+    // Ambil nama unit kerja dan instansi dari SIMPEG untuk melengkapi data tampilan
+    const [simpegUnits, instansis] = await Promise.all([
+      this.simpegAdapter.findUnitKerjaInduk(),
+      this.simpegAdapter.findAllInstansi(),
+    ]);
+    const unitNameMap = new Map<string, string>();
+    for (const ins of instansis) {
+      unitNameMap.set(ins.id, ins.instansi);
+    }
+    for (const u of simpegUnits) {
+      const displayName =
+        u.ref_instansi && u.ref_instansi !== u.unit_kerja
+          ? `${u.unit_kerja} (${u.ref_instansi})`
+          : u.unit_kerja;
+      unitNameMap.set(u.id, displayName);
+    }
 
     const enriched = items.map((item) => ({
       ...item,
@@ -290,12 +327,19 @@ export class LhpService {
     const unitKerja = await this.simpegAdapter.findUnitKerjaById(
       lhp.simpeg_unit_kerja_id,
     );
+    const instansi = unitKerja
+      ? null
+      : await this.simpegAdapter.findInstansiById(lhp.simpeg_unit_kerja_id);
 
     return {
       ...lhp,
       unit_kerja_nama: unitKerja
-        ? unitKerja.unit_kerja
-        : lhp.simpeg_unit_kerja_id,
+        ? unitKerja.ref_instansi &&
+          unitKerja.ref_instansi !== unitKerja.unit_kerja
+          ? `${unitKerja.unit_kerja} (${unitKerja.ref_instansi})`
+          : unitKerja.unit_kerja
+        : instansi?.instansi || lhp.simpeg_unit_kerja_id,
+      ref_instansi: unitKerja?.ref_instansi || instansi?.instansi || null,
       is_closed: lhp.closed_at !== null,
     };
   }

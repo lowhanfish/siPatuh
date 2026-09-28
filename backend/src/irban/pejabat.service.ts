@@ -44,13 +44,18 @@ export class PejabatService {
   }
 
   async create(dto: CreatePejabatDto, currentUser: AuthenticatedUser) {
-    // 1. Verifikasi bahwa unit kerja SIMPEG valid dan berstatus unit_induk = 1
+    // 1. Verifikasi bahwa unit kerja SIMPEG atau instansi valid
     const unitKerja = await this.simpegAdapter.findUnitKerjaById(
       dto.simpeg_unit_kerja_id,
     );
-    if (!unitKerja) {
+    const instansi =
+      unitKerja || typeof this.simpegAdapter.findInstansiById !== 'function'
+        ? null
+        : await this.simpegAdapter.findInstansiById(dto.simpeg_unit_kerja_id);
+
+    if (!unitKerja && !instansi) {
       throw new BadRequestException(
-        `Unit Kerja SIMPEG ID ${dto.simpeg_unit_kerja_id} tidak valid atau bukan unit induk`,
+        `Unit Kerja / Instansi SIMPEG ID ${dto.simpeg_unit_kerja_id} tidak valid`,
       );
     }
 
@@ -161,9 +166,16 @@ export class PejabatService {
   async resolveRecipient(simpegUnitKerjaId: string) {
     const now = new Date();
 
+    // 1. Cek kandidat pejabat pada unit kerja bersangkutan dan instansi induknya
+    const candidateIds = [simpegUnitKerjaId];
+    const unit = await this.simpegAdapter.findUnitKerjaById(simpegUnitKerjaId);
+    if (unit?.instansi && unit.instansi !== simpegUnitKerjaId) {
+      candidateIds.push(unit.instansi);
+    }
+
     const candidates = await this.prisma.pejabatUnitKerja.findMany({
       where: {
-        simpeg_unit_kerja_id: simpegUnitKerjaId,
+        simpeg_unit_kerja_id: { in: candidateIds },
         is_active: true,
         tanggal_mulai: { lte: now },
         OR: [{ tanggal_selesai: null }, { tanggal_selesai: { gte: now } }],

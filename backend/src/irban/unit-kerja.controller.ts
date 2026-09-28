@@ -28,6 +28,16 @@ export class UnitKerjaController {
     return this.unitKerjaService.browseSimpegUnitKerja(search);
   }
 
+  @Get('search')
+  @Roles(RoleEnum.SUPER_ADMIN, RoleEnum.ADMIN_IRBAN, RoleEnum.BUPATI)
+  async searchUnitKerja(
+    @Query('q') query?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const parsedLimit = limit ? Math.min(Math.max(Number(limit), 1), 100) : 50;
+    return this.unitKerjaService.searchUnitKerja(query, parsedLimit);
+  }
+
   @Get('mappings')
   @Roles(RoleEnum.SUPER_ADMIN, RoleEnum.ADMIN_IRBAN, RoleEnum.BUPATI)
   async findMappings(@Query('irban_id') irbanId?: string) {

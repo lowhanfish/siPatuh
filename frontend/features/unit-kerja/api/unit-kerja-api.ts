@@ -1,6 +1,7 @@
 import { apiRequest } from "@/lib/api-client";
 import type {
   AssignUnitKerjaInput,
+  AutocompleteUnitKerjaItem,
   CreatePejabatInput,
   IrbanUnitKerjaMapping,
   PejabatUnitKerja,
@@ -8,6 +9,7 @@ import type {
   SimpegUnitKerjaItem,
   UpdatePejabatInput,
 } from "@/features/unit-kerja/types";
+
 
 type ApiResponseWrapper<T> = T | { data: T; success?: boolean };
 
@@ -23,6 +25,19 @@ export async function browseSimpegUnitKerja(search?: string): Promise<SimpegUnit
   const res = await apiRequest<ApiResponseWrapper<SimpegUnitKerjaItem[]>>(`/unit-kerja/simpeg${query}`);
   return unwrapResponse(res);
 }
+
+export async function searchUnitKerjaAutocomplete(
+  search?: string,
+  limit?: number,
+): Promise<AutocompleteUnitKerjaItem[]> {
+  const params = new URLSearchParams();
+  if (search && search.trim()) params.set("q", search.trim());
+  if (limit) params.set("limit", String(limit));
+  const query = params.toString() ? `?${params.toString()}` : "";
+  const res = await apiRequest<ApiResponseWrapper<AutocompleteUnitKerjaItem[]>>(`/unit-kerja/search${query}`);
+  return unwrapResponse(res);
+}
+
 
 export async function getUnitKerjaMappings(irbanId?: string): Promise<IrbanUnitKerjaMapping[]> {
   const query = irbanId ? `?irban_id=${encodeURIComponent(irbanId)}` : "";

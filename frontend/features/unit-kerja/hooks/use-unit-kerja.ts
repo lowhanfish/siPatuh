@@ -3,9 +3,11 @@ import {
   assignUnitKerja,
   browseSimpegUnitKerja,
   getUnitKerjaMappings,
+  searchUnitKerjaAutocomplete,
   unassignUnitKerja,
 } from "@/features/unit-kerja/api/unit-kerja-api";
 import type { AssignUnitKerjaInput } from "@/features/unit-kerja/types";
+
 
 export function useSimpegUnitKerja(search?: string) {
   return useQuery({
@@ -14,6 +16,15 @@ export function useSimpegUnitKerja(search?: string) {
     staleTime: 60 * 1000,
   });
 }
+
+export function useUnitKerjaAutocomplete(search?: string, limit = 50) {
+  return useQuery({
+    queryKey: ["unit-kerja-autocomplete", search, limit],
+    queryFn: () => searchUnitKerjaAutocomplete(search, limit),
+    staleTime: 30 * 1000,
+  });
+}
+
 
 export function useUnitKerjaMappings(irbanId?: string) {
   return useQuery({

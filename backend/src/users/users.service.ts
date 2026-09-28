@@ -80,15 +80,17 @@ export class UsersService {
       existingSipatuhUsers.map((u) => [u.egov_user_id, u]),
     );
 
-    return Promise.all(egovUsers.map(async (u) => {
-      const registered = registeredMap.get(u.id);
-      return {
-        ...(await this.enrichIdentity(u)),
-        is_registered: !!registered,
-        sipatuh_role: registered ? registered.role : null,
-        sipatuh_is_active: registered ? registered.is_active : null,
-      };
-    }));
+    return Promise.all(
+      egovUsers.map(async (u) => {
+        const registered = registeredMap.get(u.id);
+        return {
+          ...(await this.enrichIdentity(u)),
+          is_registered: !!registered,
+          sipatuh_role: registered ? registered.role : null,
+          sipatuh_is_active: registered ? registered.is_active : null,
+        };
+      }),
+    );
   }
 
   /**

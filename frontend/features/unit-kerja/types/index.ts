@@ -11,10 +11,23 @@ export type SimpegUnitKerjaItem = {
   unit_kerja: string;
   instansi_id?: string;
   instansi?: string;
+  ref_instansi?: string;
+  sub_unit_count?: number;
   is_assigned: boolean;
   mapping_id: string | null;
   assigned_irban: AssignedIrban | null;
 };
+
+export type AutocompleteUnitKerjaItem = {
+  id: string;
+  unit_kerja: string;
+  instansi_id: string;
+  ref_instansi: string;
+  unit_induk?: number | null;
+  assigned_irban?: AssignedIrban | null;
+  is_assigned?: boolean;
+};
+
 
 export type IrbanUnitKerjaMapping = {
   id: string;

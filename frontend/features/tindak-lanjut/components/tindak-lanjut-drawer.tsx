@@ -47,8 +47,9 @@ export function TindakLanjutDrawer({
   isClosed,
   temuan,
   rekomendasi,
-  statusList,
   currentUser,
+
+
 }: TindakLanjutDrawerProps) {
   const isFinancial =
     rekomendasi.nilai_rekomendasi !== null &&

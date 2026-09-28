@@ -19,17 +19,17 @@ export class UnitKerjaService {
   ) {}
 
   /**
-   * Mengambil daftar Unit Kerja dari SIMPEG (unit_induk=1) dan melengkapinya dengan status mapping Irban
+   * Mengambil daftar Instansi / OPD Induk (66 entitas) dari SIMPEG dan melengkapinya dengan status mapping Irban
    */
   async browseSimpegUnitKerja(search?: string) {
-    const simpegUnits = await this.simpegAdapter.findUnitKerjaInduk(search);
-    if (simpegUnits.length === 0) {
+    const instansis = await this.simpegAdapter.findAllInstansi(search);
+    if (instansis.length === 0) {
       return [];
     }
 
-    const unitIds = simpegUnits.map((u) => u.id);
+    const instansiIds = instansis.map((i) => i.id);
     const mappings = await this.prisma.irbanUnitKerja.findMany({
-      where: { simpeg_unit_kerja_id: { in: unitIds } },
+      where: { simpeg_unit_kerja_id: { in: instansiIds } },
       include: {
         irban: { select: { id: true, kode: true, nama: true } },
       },
@@ -39,10 +39,15 @@ export class UnitKerjaService {
       mappings.map((m) => [m.simpeg_unit_kerja_id, m]),
     );
 
-    return simpegUnits.map((unit) => {
-      const mapping = mappingMap.get(unit.id);
+    return instansis.map((ins) => {
+      const mapping = mappingMap.get(ins.id);
       return {
-        ...unit,
+        id: ins.id,
+        unit_kerja: ins.instansi,
+        instansi: ins.instansi,
+        instansi_id: ins.id,
+        ref_instansi: ins.instansi,
+        sub_unit_count: ins.sub_unit_count || 0,
         is_assigned: !!mapping,
         mapping_id: mapping ? mapping.id : null,
         assigned_irban: mapping ? mapping.irban : null,
@@ -51,7 +56,43 @@ export class UnitKerjaService {
   }
 
   /**
-   * Menampilkan semua mapping aktif Unit Kerja ke Irban
+   * Autocomplete pencarian Unit Kerja beserta Instansi induknya untuk sasaran audit LHP
+   */
+  async searchUnitKerja(search?: string, limit = 50) {
+    const units = await this.simpegAdapter.searchUnitKerjaWithInstansi(
+      search,
+      limit,
+    );
+    if (units.length === 0) {
+      return [];
+    }
+
+    // Ambil mapping Irban untuk seluruh instansi terkait
+    const instansiIds = Array.from(new Set(units.map((u) => u.instansi)));
+    const mappings = await this.prisma.irbanUnitKerja.findMany({
+      where: { simpeg_unit_kerja_id: { in: instansiIds } },
+      include: {
+        irban: { select: { id: true, kode: true, nama: true } },
+      },
+    });
+
+    const mappingMap = new Map(
+      mappings.map((m) => [m.simpeg_unit_kerja_id, m.irban]),
+    );
+
+    return units.map((u) => ({
+      id: u.id,
+      unit_kerja: u.unit_kerja,
+      instansi_id: u.instansi,
+      ref_instansi: u.ref_instansi || u.instansi,
+      unit_induk: u.unit_induk,
+      assigned_irban: mappingMap.get(u.instansi) || null,
+      is_assigned: mappingMap.has(u.instansi),
+    }));
+  }
+
+  /**
+   * Menampilkan semua mapping aktif Unit Kerja / Instansi ke Irban
    */
   async findMappings(irbanId?: string) {
     const where: Prisma.IrbanUnitKerjaWhereInput = {};
@@ -67,19 +108,19 @@ export class UnitKerjaService {
       orderBy: { created_at: 'desc' },
     });
 
-    // Perkaya data dengan nama unit kerja dari SIMPEG
-    const simpegUnits = await this.simpegAdapter.findUnitKerjaInduk();
-    const unitNameMap = new Map(simpegUnits.map((u) => [u.id, u.unit_kerja]));
+    // Perkaya data dengan nama instansi dari SIMPEG
+    const instansis = await this.simpegAdapter.findAllInstansi();
+    const instansiMap = new Map(instansis.map((i) => [i.id, i.instansi]));
 
     return mappings.map((m) => ({
       ...m,
       unit_kerja_nama:
-        unitNameMap.get(m.simpeg_unit_kerja_id) || m.simpeg_unit_kerja_id,
+        instansiMap.get(m.simpeg_unit_kerja_id) || m.simpeg_unit_kerja_id,
     }));
   }
 
   /**
-   * Menugaskan atau memindahkan Unit Kerja ke wilayah Irban tertentu (Super Admin)
+   * Menugaskan atau memindahkan Instansi / Unit Kerja ke wilayah Irban tertentu (Super Admin)
    */
   async assignUnitKerja(
     dto: AssignUnitKerjaDto,
@@ -95,17 +136,23 @@ export class UnitKerjaService {
       );
     }
 
-    // 2. Verifikasi unit kerja di database SIMPEG
-    const simpegUnit = await this.simpegAdapter.findUnitKerjaById(
+    // 2. Verifikasi instansi atau unit kerja di database SIMPEG
+    const instansi = await this.simpegAdapter.findInstansiById(
       dto.simpeg_unit_kerja_id,
     );
-    if (!simpegUnit) {
+    const unitKerja = instansi
+      ? null
+      : await this.simpegAdapter.findUnitKerjaById(dto.simpeg_unit_kerja_id);
+
+    if (!instansi && !unitKerja) {
       throw new BadRequestException(
-        `Unit Kerja dengan ID ${dto.simpeg_unit_kerja_id} tidak valid di SIMPEG atau bukan unit induk`,
+        `Unit Kerja / Instansi dengan ID ${dto.simpeg_unit_kerja_id} tidak valid di SIMPEG`,
       );
     }
 
-    // 3. Upsert mapping (1 OPD aktif tepat berada pada 1 Irban)
+    const entityName = instansi ? instansi.instansi : unitKerja!.unit_kerja;
+
+    // 3. Upsert mapping (1 Instansi/OPD aktif tepat berada pada 1 Irban)
     const existing = await this.prisma.irbanUnitKerja.findUnique({
       where: { simpeg_unit_kerja_id: dto.simpeg_unit_kerja_id },
     });
@@ -135,7 +182,7 @@ export class UnitKerjaService {
       entity_id: result.id,
       metadata: {
         simpeg_unit_kerja_id: dto.simpeg_unit_kerja_id,
-        unit_kerja_nama: simpegUnit.unit_kerja,
+        unit_kerja_nama: entityName,
         irban_id_before: existing ? existing.irban_id : null,
         irban_id_after: dto.irban_id,
       },

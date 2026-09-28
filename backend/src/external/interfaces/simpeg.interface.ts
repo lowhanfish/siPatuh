@@ -12,14 +12,17 @@
 export interface SimpegUnitKerja {
   id: string;
   unit_kerja: string;
-  instansi: string;
-  unit_induk: number;
+  instansi: string; // instansi_id
+  ref_instansi?: string | null;
+  unit_induk?: number | null;
   status?: number;
 }
 
 export interface SimpegInstansi {
   id: string;
-  nama?: string;
+  instansi: string;
+  status?: number;
+  sub_unit_count?: number;
 }
 
 export interface SimpegBiodataProfile {
@@ -44,12 +47,30 @@ export interface ISimpegAdapter {
   findBiodataByNip(nip: string): Promise<SimpegBiodataProfile | null>;
 
   /**
-   * Mengambil daftar Unit Kerja utama yang sah sebagai target LHP (hanya unit_induk = 1).
+   * Mengambil seluruh daftar Instansi / OPD Induk (66 Instansi di Pemda Kab Konawe Selatan).
+   */
+  findAllInstansi(search?: string): Promise<SimpegInstansi[]>;
+
+  /**
+   * Mengambil satu Instansi berdasarkan ID.
+   */
+  findInstansiById(id: string): Promise<SimpegInstansi | null>;
+
+  /**
+   * Mengambil daftar Unit Kerja utama yang sah sebagai target LHP.
    */
   findUnitKerjaInduk(search?: string): Promise<SimpegUnitKerja[]>;
 
   /**
-   * Mengambil satu Unit Kerja berdasarkan ID dengan memastikan unit_induk = 1.
+   * Mencari Unit Kerja dengan JOIN instansi untuk autocomplete sasaran audit LHP.
+   */
+  searchUnitKerjaWithInstansi(
+    search?: string,
+    limit?: number,
+  ): Promise<SimpegUnitKerja[]>;
+
+  /**
+   * Mengambil satu Unit Kerja berdasarkan ID dengan JOIN instansi.
    */
   findUnitKerjaById(id: string): Promise<SimpegUnitKerja | null>;
 }

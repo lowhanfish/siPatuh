@@ -156,11 +156,18 @@ export function UnitMappingTable({
                 {filteredUnits.map((u) => (
                   <tr key={u.id} className="transition-colors hover:bg-canvas/40">
                     <td className="px-4 py-3.5">
-                      <div className="space-y-0.5">
+                      <div className="space-y-1">
                         <p className="font-bold text-ink sm:text-sm">{u.unit_kerja}</p>
-                        {u.instansi && <p className="text-muted">{u.instansi}</p>}
+                        <div className="flex flex-wrap items-center gap-1.5 text-2xs text-muted">
+                          {u.sub_unit_count !== undefined && u.sub_unit_count > 0 && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-brand-soft px-2 py-0.5 font-semibold text-brand">
+                              <Layers size={11} /> {u.sub_unit_count} Sub-Unit Terhubung
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
+
 
                     <td className="px-4 py-3.5 font-mono text-muted">
                       {u.id}

@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertCircle,
-  Building2,
   Calendar,
   Clock,
   FileText,
@@ -13,9 +12,12 @@ import {
   ShieldAlert,
   X,
 } from "lucide-react";
+
 import type { SimpegUnitKerjaItem } from "@/features/unit-kerja/types";
 import type { JenisPemeriksaan } from "@/features/master-data/types";
 import type { AuthUser } from "@/features/auth/types";
+import { UnitKerjaCombobox } from "@/features/unit-kerja/components/unit-kerja-combobox";
+
 import { useCreateLhp } from "../hooks/use-lhp";
 import { getApiErrorMessage } from "@/lib/api-client";
 
@@ -81,12 +83,11 @@ function LhpCreateModalContent({
   // Form states
   const todayIso = new Date().toISOString().substring(0, 10);
   const [nomorLhp, setNomorLhp] = useState("");
-  const [simpegUnitKerjaId, setSimpegUnitKerjaId] = useState(
-    eligibleUnits.length > 0 ? eligibleUnits[0].id : "",
-  );
+  const [simpegUnitKerjaId, setSimpegUnitKerjaId] = useState("");
   const [jenisPemeriksaanId, setJenisPemeriksaanId] = useState(
     activeJenisList.length > 0 ? activeJenisList[0].id : "",
   );
+
   const [tanggalLhp, setTanggalLhp] = useState(todayIso);
   const [tanggalDiterimaLhp, setTanggalDiterimaLhp] = useState(todayIso);
   const [tanggalMulai, setTanggalMulai] = useState("");
@@ -258,35 +259,24 @@ function LhpCreateModalContent({
               </p>
             </div>
 
-            {/* Pilihan Unit Kerja SIMPEG (Hanya milik Irban pengguna) */}
+            {/* Pilihan Unit Kerja SIMPEG (Autocomplete) */}
             <div>
               <label className="block text-xs font-bold text-ink">
                 Unit Kerja / OPD Sasaran Pemeriksaan <span className="text-rose-500">*</span>
               </label>
-              <div className="relative mt-1.5">
-                <Building2
-                  aria-hidden
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
-                  size={15}
-                />
-                <select
+              <div className="mt-1.5">
+                <UnitKerjaCombobox
                   value={simpegUnitKerjaId}
-                  onChange={(e) => setSimpegUnitKerjaId(e.target.value)}
-                  className="form-input pl-10 text-xs sm:text-sm font-semibold cursor-pointer"
-                  required
-                >
-                  {eligibleUnits.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.unit_kerja}{" "}
-                      {u.assigned_irban ? `(${u.assigned_irban.nama})` : ""}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(id) => setSimpegUnitKerjaId(id)}
+                  requiredRoleIrbanId={currentUser?.irban_id}
+                  isSuperAdmin={currentUser?.role === "SUPER_ADMIN"}
+                />
               </div>
               <p className="mt-1 text-2xs text-muted">
-                Hanya menampilkan unit kerja SIMPEG yang sah dan berada di wilayah wewenang Anda.
+                Pencarian autocomplete mencakup seluruh dinas, badan, kecamatan, sekolah, dan puskesmas di Konawe Selatan.
               </p>
             </div>
+
 
             {/* Pilihan Jenis Pemeriksaan */}
             <div>
