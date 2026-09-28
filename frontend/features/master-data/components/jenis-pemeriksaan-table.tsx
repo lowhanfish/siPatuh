@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import {
+  AlertTriangle,
   CheckCircle2,
   ClipboardList,
   Edit2,
@@ -34,6 +35,7 @@ export function JenisPemeriksaanTable({
   const [search, setSearch] = useState("");
   const [filterActive, setFilterActive] = useState<string>("all");
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deactivatingItem, setDeactivatingItem] = useState<JenisPemeriksaan | null>(null);
 
   const updateMutation = useUpdateJenisPemeriksaan();
 
@@ -46,7 +48,7 @@ export function JenisPemeriksaanTable({
     return true;
   });
 
-  async function handleToggleActive(item: JenisPemeriksaan) {
+  async function executeToggle(item: JenisPemeriksaan) {
     try {
       setTogglingId(item.id);
       await updateMutation.mutateAsync({
@@ -60,6 +62,15 @@ export function JenisPemeriksaanTable({
       toast.error(getApiErrorMessage(err));
     } finally {
       setTogglingId(null);
+      setDeactivatingItem(null);
+    }
+  }
+
+  function handleToggleClick(item: JenisPemeriksaan) {
+    if (item.is_active) {
+      setDeactivatingItem(item);
+    } else {
+      executeToggle(item);
     }
   }
 
@@ -183,7 +194,7 @@ export function JenisPemeriksaanTable({
 
                         <button
                           type="button"
-                          onClick={() => handleToggleActive(item)}
+                          onClick={() => handleToggleClick(item)}
                           disabled={togglingId === item.id}
                           className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 font-semibold shadow-xs transition-colors ${
                             item.is_active
@@ -213,6 +224,55 @@ export function JenisPemeriksaanTable({
           <span>Digunakan saat pembuatan dokumen LHP baru</span>
         </div>
       </div>
+
+      {/* Modal Konfirmasi Nonaktifkan */}
+      {deactivatingItem && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-xs"
+        >
+          <div className="w-full max-w-sm rounded-3xl border border-line bg-surface p-6 shadow-panel">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-2xl bg-amber-50 text-amber-600">
+                <AlertTriangle size={20} />
+              </span>
+              <h3 className="text-base font-bold text-ink">Nonaktifkan Jenis Pemeriksaan?</h3>
+            </div>
+
+            <p className="mt-3 text-xs text-muted leading-relaxed">
+              Apakah Anda yakin ingin menonaktifkan jenis pemeriksaan{" "}
+              <span className="font-semibold text-ink">&quot;{deactivatingItem.nama}&quot;</span>?
+              Data historis tetap aman, namun opsi ini tidak akan muncul pada pembuatan LHP baru.
+            </p>
+
+            <div className="mt-6 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setDeactivatingItem(null)}
+                className="rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-muted hover:text-ink transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => executeToggle(deactivatingItem)}
+                disabled={togglingId === deactivatingItem.id}
+                className="button-primary bg-amber-600 hover:bg-amber-700 text-xs font-bold text-white shadow-xs flex items-center gap-1.5"
+              >
+                {togglingId === deactivatingItem.id ? (
+                  <>
+                    <Loader2 aria-hidden className="animate-spin" size={13} />
+                    <span>Memproses...</span>
+                  </>
+                ) : (
+                  <span>Ya, Nonaktifkan</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

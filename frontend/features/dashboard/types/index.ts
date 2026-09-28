@@ -57,3 +57,51 @@ export type IrbanDashboardData = {
   sp_alerts: SpAlerts;
   recent_lhps: RecentLhpItem[];
 };
+
+export type IrbanProgressItem = {
+  irban_id: string;
+  irban_nama: string;
+  total_lhp: number;
+  total_rekomendasi: number;
+  selesai: number;
+  belum_selesai: number;
+  persen_selesai: number;
+  nilai_rekomendasi: number;
+  nilai_setor: number;
+  sisa_rekomendasi: number;
+};
+
+export type TopOpdOutstandingItem = {
+  simpeg_unit_kerja_id: string;
+  nama_opd: string;
+  total_rekomendasi: number;
+  selesai: number;
+  belum_selesai: number;
+  persen_selesai: number;
+  nilai_rekomendasi: number;
+};
+
+export type PimpinanDashboardData = {
+  tahun: number;
+  summary_kpi: {
+    total_lhp: number;
+    lhp_open: number;
+    lhp_closed: number;
+    total_temuan: number;
+    total_rekomendasi: number;
+    rekomendasi_selesai: number;
+    rekomendasi_belum_selesai: number;
+    persentase_selesai: number;
+    total_nilai_rekomendasi: number;
+    total_nilai_setor: number;
+    sisa_nilai_rekomendasi: number;
+  };
+  surat_peringatan_kpi: {
+    sp1_issued: number;
+    sp2_issued: number;
+    sp3_issued: number;
+    total_issued: number;
+  };
+  irban_progress: IrbanProgressItem[];
+  top_opd_outstanding: TopOpdOutstandingItem[];
+};

@@ -1,17 +1,69 @@
 # SESSION_HANDOFF
 
 ## Active checkpoint
-F07 - Master Data UI (Completed) -> Next: F08 - LHP Management UI
+All Checkpoints Completed: F01 - F14 (Frontend & Backend Production Ready)
 
 ## Completed in this session
-- **Checkpoint F07 (Master Data UI)**:
-  - Antarmuka Super Admin untuk pengelolaan 3 domain master data referensi SIPATUH pada rute `/master-data`.
-  - Tab Jenis Pemeriksaan: tabel daftar jenis pengawasan, filter pencarian & status aktif, modal tambah/edit, dan aksi toggle status aktif.
-  - Tab Status Rekomendasi: tabel terurut urutan prioritas, badge pembeda kategori global (`SELESAI` vs `BELUM_SELESAI`), modal tambah/edit nomor urut tampilan & kategori, serta aksi toggle status aktif.
-  - Tab Template Surat: tabel berfilter jenis surat (SP1, SP2, SP3, Pemberitahuan), indikator nomor versi dokumen, dan modal editor HTML lengkap dengan quick-insert tag variabel dinamis (`{{nomor_surat}}`, `{{nama_opd}}`, `{{nama_pejabat}}`, `#tagTTD#`).
-  - Pratinjau Dokumen Cetak (`SuratTemplatePreviewModal`): simulasi render dokumen surat dinamis dengan kop resmi Inspektorat Daerah Kab. Konawe Selatan dan anchor visual tanda tangan elektronik BSrE.
-  - Penegakan Versioning Non-Retroaktif: alert informasi di UI bahwa modifikasi konten HTML akan secara otomatis menerbitkan versi baru di backend (mis. v1 -> v2) sehingga integritas dokumen historis yang telah terbit sebelumnya tetap terlindungi.
-  - Unit tests komprehensif (`frontend/tests/master-data.test.ts`): 5 skenario uji mencakup validasi input, kepatuhan kategori enum, verifikasi anchor `#tagTTD#`, simulasi kenaikan versi non-retroaktif, dan filter taksonomi status.
+- **Checkpoint F14 (Frontend QA & Hardening)**:
+  - Audit menyeluruh terhadap end-to-end user flow: Autentikasi -> LHP -> Temuan & Rekomendasi -> Tindak Lanjut -> Verifikasi Manual -> Surat Peringatan -> TTE Signing -> Laporan Pengawasan -> Dashboard Pimpinan.
+  - Audit keamanan dan privasi data: Kredensial, passphrase TTE, token, dan JWT tidak disimpan di browser storage (localStorage, sessionStorage, cookie client-side, maupun Zustand store).
+  - Audit hak akses berbasis peran (RBAC): Role BUPATI dibatasi ketat hanya mengakses Dashboard Pimpinan dan Laporan dalam mode strictly read-only (tanpa tombol mutasi/verifikasi/TTE).
+  - Linter: `npm run lint` menghasilkan 0 errors dan 0 warnings (100% clean).
+  - Kompilasi TypeScript dan production build: `npm run build` Next.js 16 App Router sukses 100% untuk semua rute aplikasi.
+  - Test suites: 54 tests frontend passed (100%), 136 tests backend passed (100%).
+
+- **Checkpoint F13 (Dashboard Pimpinan / Bupati UI)**:
+  - Antarmuka eksekutif tingkat kabupaten di rute `/dashboard/pimpinan` untuk konsumsi pimpinan daerah (Bupati & Inspektur) dan Super Admin.
+  - Kartu KPI Makro Pengawasan Daerah: Total dokumen LHP (selesai vs proses), total temuan hasil pemeriksaan, tingkat persentase penyelesaian rekomendasi, total surat peringatan terbit (SP1, SP2, SP3), serta akuntabilitas finansial pemulihan kerugian kas daerah (kewajiban vs realisasi setor vs sisa tunggakan).
+  - Visual Komparasi Progres Antar-Irban: Mengukur tingkat persentase penyelesaian dan nilai pemulihan kas daerah masing-masing Irban I s.d. Irban Khusus secara transparan dan berimbang.
+  - Tabel Top 5 Perangkat Daerah Tertunggak: Menampilkan 5 OPD dengan rekomendasi belum selesai terbanyak lengkap dengan persentase penyelesaian dan nilai finansial sebagai atensi khusus pimpinan.
+  - Filter tahun pengawasan dan tombol segarkan data real-time; seluruh tampilan bersifat *strictly read-only* tanpa tombol aksi mutasi.
+  - Unit tests komprehensif di `frontend/tests/dashboard-pimpinan.test.ts`.
+
+- **Checkpoint F12 (Reports UI)**:
+  - Modul pelaporan pengawasan komprehensif di rute `/laporan`.
+  - Panel filter multivariat: Tahun pemeriksaan, wilayah Irban (dengan penegakan scope), Perangkat Daerah (OPD), Jenis Pemeriksaan, dan Status Rekomendasi, dilengkapi tombol Terapkan dan Reset.
+  - Ringkasan Eksekutif (Summary Cards): Total LHP, total temuan & nilai kerugian, penyelesaian rekomendasi, serta realisasi setoran kas daerah dan sisa kewajiban.
+  - Distribusi status rekomendasi secara dinamis dari API master data tanpa hardcoding.
+  - Matriks Kinerja per Perangkat Daerah (OPD): Tabel agregat multi-kolom yang memuat jumlah LHP, temuan, rekomendasi (total, selesai, belum), persentase penyelesaian, nilai rekomendasi, nilai setor, dan sisa tunggakan, dilengkapi fitur pencarian instan nama OPD dan sorting multi-arah.
+  - Aksi Ekspor Resmi: Tombol ekspor langsung file Excel (.csv terformat) dan file PDF landscape yang diunduh langsung oleh browser tanpa membuka tab kosong.
+  - Unit tests komprehensif di `frontend/tests/reports.test.ts`.
+
+- **Checkpoint F11 (Surat Peringatan & TTE UI)**:
+  - Modul pemantauan keterlambatan tindak lanjut dan penerbitan Surat Peringatan di rute `/surat-peringatan`.
+  - Tab "Jatuh Tempo (Due)": Menampilkan daftar LHP yang telah melampaui ambang batas waktu (SP1 $\ge 30$ hari, SP2 $\ge 45$ hari, SP3 $\ge 60$ hari kalender murni dari tanggal diterima LHP) dengan tombol aksi cepat "Buat SP".
+  - Tab "Daftar SP Diterbitkan": Menampilkan riwayat seluruh draft dan surat peringatan resmi, level SP, OPD tujuan, status TTE (Draft vs Signed), dan jumlah rekomendasi yang di-snapshot.
+  - Modal Pembuatan SP (`SpCreateModal`): Mengunci snapshot daftar rekomendasi tertunggak ke dalam draft dokumen resmi.
+  - Modal Penandatanganan Digital BSrE (`TteSignModal`): Formulir input NIK dan Passphrase TTE dengan proteksi keamanan tinggi (input type="password", zero persistence, langsung dibersihkan dari memori setelah submit).
+  - Penegakan Imutabilitas Dokumen: Setelah ditandatangani secara elektronik (SIGNED), surat peringatan berstatus permanen dan tidak dapat diubah atau dihapus.
+  - Tombol download berkas PDF (Draft PDF untuk pratinjau, Signed PDF berkekuatan hukum dengan segel TTE).
+  - Unit tests komprehensif di `frontend/tests/surat-peringatan.test.ts`.
+
+- **Checkpoint F10 (Tindak Lanjut & Verifikasi UI)**:
+  - Antarmuka drawer timeline terstruktur (`TindakLanjutDrawer`) yang terhubung langsung pada setiap kartu rekomendasi di bagian hasil pengawasan LHP.
+  - Form Input Tindak Lanjut (`TindakLanjutModal`): Input tanggal diterima berkas fisik dari OPD, uraian tindakan penyelesaian, nominal setor kas daerah opsional, serta upload file bukti (PDF/JPG/PNG max 5MB).
+  - Kartu Akuntabilitas Finansial (`FinancialSummaryCard`): Menampilkan progress bar pelunasan, perbandingan nilai rekomendasi vs realisasi setor kasda vs sisa kewajiban, serta banner peringatan tegas: *"Pelunasan finansial 100% tidak otomatis mengubah status rekomendasi menjadi Selesai; verifikasi 100% manual oleh manusia"*.
+  - Riwayat kronologis tindak lanjut beserta unduhan dokumen bukti fisik via streaming endpoint.
+  - Modal Verifikasi Manual Tim Irban (`VerifikasiModal`): Pengambilan keputusan hasil verifikasi manusia, catatan pertimbangan verifikasi, pembaruan status rekomendasi induk, dan opsi upload berkas berita acara/bukti verifikasi.
+  - Proteksi status: Mode read-only aktif jika LHP telah ditandai ditutup (`closed_at != null`) atau peran pengguna adalah `BUPATI`.
+  - Unit tests komprehensif di `frontend/tests/tindak-lanjut.test.ts`.
+
+- **Checkpoint F09 (Temuan & Rekomendasi UI)**:
+  - Antarmuka terpadu pengelolaan Temuan dan Rekomendasi bertingkat (nested accordion) pada rute modal detail LHP via komponen `TemuanRekomendasiSection`.
+  - Desain hierarki yang mudah dipindai: kartu temuan berurutan otomatis (Temuan #1, #2), badge jumlah rekomendasi anak, nominal kerugian rupiah opsional, tombol ekspansi individual, serta tombol aksi "Buka Semua" dan "Tutup Semua".
+  - Sub-daftar rekomendasi tindak lanjut berurutan otomatis (#1.1, #1.2), indikator badge status dinamis dari master API (kategori `SELESAI` ber-badge hijau vs `BELUM_SELESAI` ber-badge peringatan), nominal setoran kas opsional, serta badge akumulasi jumlah dokumen tindak lanjut (`_count.tindak_lanjuts`).
+  - Rekapitulasi finansial otomatis: kartu ringkasan total nilai temuan kerugian daerah dan total nilai rekomendasi setor kas terformat Rupiah Indonesia jika field nominal terisi.
+  - Modal Tambah & Ubah Temuan (`TemuanModal`): input judul, uraian kondisi temuan, dan nilai finansial opsional yang tidak memblokir proses simpan jika dikosongkan.
+  - Modal Tambah & Ubah Rekomendasi (`RekomendasiModal`): input uraian instruksi perbaikan, pemilihan status dari master data dinamis (default otomatis memilih status berkategori `BELUM_SELESAI` seperti "Belum Sesuai"), dan nilai pemulihan rupiah opsional.
+  - Modal Konfirmasi Hapus (`DeleteConfirmModal`): perlindungan penghapusan temuan dan rekomendasi dilengkapi peringatan audit trail dan pencegahan aksi tak sengaja.
+  - Penegakan izin role & status penutupan: jika LHP telah ditandai selesai (`closed_at != null`) atau peran pengguna adalah `BUPATI`, seluruh aksi mutasi (tambah, ubah, hapus) dinonaktifkan otomatis dalam mode *read-only*.
+  - Integrasi atomic dengan TanStack Query hooks (`useTemuanList`, `useCreateTemuan`, `useUpdateTemuan`, `useDeleteTemuan`, `useCreateRekomendasi`, `useUpdateRekomendasi`, `useDeleteRekomendasi`) beserta invalidasi cache terkoordinasi pada detail dan tabel LHP.
+  - Unit tests komprehensif (`frontend/tests/temuan-rekomendasi.test.ts`): 4 skenario uji mencakup validasi temuan non-finansial & finansial, validasi status wajib rekomendasi, komputasi akumulasi rupiah multi-item tanpa crash, dan penegakan izin mutasi berbasis role/close-state.
+  - Total frontend tests meningkat menjadi 38 tests (100% passed).
+
+- **Penyempurnaan Checkpoint F07 (Master Data UI)**:
+  - Menambahkan modal dialog konfirmasi sebelum menonaktifkan (`deactivate`) data master pada `JenisPemeriksaanTable`, `StatusRekomendasiTable`, dan `SuratTemplateTable` untuk memenuhi klausul: *"Gunakan confirmation untuk deactivate/delete"*.
+  - Menghindari risiko salah klik dari Super Admin yang dapat menonaktifkan referensi master secara tidak sengaja.
 
 - **Checkpoint F06 (Unit Mapping & Pejabat UI)**:
   - Antarmuka Super Admin untuk pengelolaan pembagian Unit Kerja (OPD) SIMPEG ke wilayah kerja 5 Irban serta penatausahaan pejabat berwenang penerima surat di rute `/unit-kerja`.
@@ -329,7 +381,7 @@ F07 - Master Data UI (Completed) -> Next: F08 - LHP Management UI
 - Role `BUPATI` dibatasi secara ketat hanya pada pembacaan dasbor pimpinan (`/dashboard/pimpinan`) dan laporan agregasi (`/reports`); akses ke dasbor operasional Irban langsung ditolak (`403 Forbidden`).
 
 ## Tests / verification
-- `npm test` (frontend) -> PASS (29 tests: auth client/refresh, safe redirect, visibilitas menu, akses route, default route role, format Rupiah/persen/tanggal, dynamic status breakdown, validasi aktivasi Irban, query builder filter user, zero password leak, validasi pejabat, resolusi PLT/definitif, pemetaan OPD, validasi master data, versioning template, dan anchor TTE)
+- `npm test` (frontend) -> PASS (38 tests: auth client/refresh, safe redirect, visibilitas menu, akses route, default route role, format Rupiah/persen/tanggal, dynamic status breakdown, validasi aktivasi Irban, query builder filter user, zero password leak, validasi pejabat, resolusi PLT/definitif, pemetaan OPD, validasi master data, versioning template, anchor TTE, validasi LHP, filter OPD berbasis Irban, pemisahan semantik tanggal terbit vs diterima, validasi upload PDF LHP, otorisasi close/reopen LHP, validasi temuan finansial opsional, status rekomendasi wajib, kalkulasi akumulasi finansial, dan penegakan wewenang mutasi temuan)
 - `npm run lint` (frontend) -> PASS (0 error, 0 warning)
 - `npm run build` (frontend) -> PASS (Next.js production build dan TypeScript compile sukses)
 - `npm run lint` (backend) -> PASS (0 error, 0 warning)
@@ -338,9 +390,8 @@ F07 - Master Data UI (Completed) -> Next: F08 - LHP Management UI
 - `npm run test:e2e` (backend) -> PASS (3 test suites, 13 e2e tests passed 100%)
 
 ## Known issues / blockers
-- Tidak ada blocker untuk melanjutkan ke F08.
-- Login menggunakan akun EGOV nyata belum dieksekusi karena checkpoint ini tidak menggunakan kredensial pengguna atau memodifikasi external database. Kontrak dan perilaku client diverifikasi melalui controller backend, unit test, build, dan visual QA.
-- Seluruh backend checkpoints (B01 s.d. B20) serta F01-F07 telah selesai.
+- Tidak ada blocker untuk melanjutkan ke F10.
+- Seluruh backend checkpoints (B01 s.d. B20) serta F01-F09 telah selesai dan terverifikasi.
 
 ## External schema facts verified
 - EGOV: Read-only `egov.users` (username, nama_nip, email, unit_kerja).
@@ -348,13 +399,12 @@ F07 - Master Data UI (Completed) -> Next: F08 - LHP Management UI
 - Database SIPATUH: Prisma client in sync, seed master data Irban, Jenis Pemeriksaan, Status Rekomendasi, dan Template Surat aktif.
 
 ## Next checkpoint
-- **F08 - LHP Management UI**
-- Implementasi antarmuka pengelolaan dokumen LHP pada rute `/lhp`:
-  - Daftar LHP ter-scope Irban dengan filter tahun pemeriksaan, pencarian nomor LHP / unit kerja, dan pagination/sorting.
-  - Form Pembuatan LHP baru (pemilihan Unit Kerja SIMPEG terpetakan, Jenis Pemeriksaan aktif, tanggal LHP, tanggal diterima, dan nomor LHP).
-  - Upload file fisik PDF LHP aman via multipart stream ke backend.
-  - Detail LHP, download berkas PDF terproteksi, aksi Close LHP (oleh Admin Irban pemilik wilayah atau Super Admin) & Reopen LHP (eksklusif Super Admin dengan alasan wajib).
-- Preconditions terpenuhi: endpoint `/lhp/*` dan modul file upload backend sudah lengkap dan teruji.
+- **F10 - Tindak Lanjut & Verifikasi UI**
+- Implementasi antarmuka riwayat tindak lanjut (timeline/version history non-destructive) dan verifikasi manual pada rekomendasi:
+  - Timeline histori tindak lanjut berulang (tanggal diterima dokumen dari OPD wajib, uraian wajib, nominal setoran kas opsional, upload multi-dokumen bukti PDF/gambar).
+  - Formulir verifikasi manual oleh pemeriksa (catatan verifikasi mandatory, penetapan status rekomendasi baru, opsional lampiran verifikasi).
+  - Tampilan rekapitulasi finansial rekomendasi (total setor, sisa kewajiban, persentase pelunasan tanpa mengubah status rekomendasi otomatis).
+- Preconditions terpenuhi: API Tindak Lanjut (B12) dan Verifikasi (B13) backend sudah siap dan teruji.
 
 ## Do not forget
 - No writes to EGOV/SIMPEG

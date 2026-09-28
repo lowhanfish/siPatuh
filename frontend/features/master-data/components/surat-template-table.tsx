@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import {
+  AlertTriangle,
   CheckCircle2,
   Edit2,
   Eye,
@@ -38,9 +39,10 @@ export function SuratTemplateTable({
   onPreview,
 }: SuratTemplateTableProps) {
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deactivatingItem, setDeactivatingItem] = useState<SuratTemplate | null>(null);
   const updateMutation = useUpdateSuratTemplate();
 
-  async function handleToggleActive(template: SuratTemplate) {
+  async function executeToggle(template: SuratTemplate) {
     try {
       setTogglingId(template.id);
       await updateMutation.mutateAsync({
@@ -54,6 +56,15 @@ export function SuratTemplateTable({
       toast.error(getApiErrorMessage(err));
     } finally {
       setTogglingId(null);
+      setDeactivatingItem(null);
+    }
+  }
+
+  function handleToggleClick(template: SuratTemplate) {
+    if (template.is_active) {
+      setDeactivatingItem(template);
+    } else {
+      executeToggle(template);
     }
   }
 
@@ -189,7 +200,7 @@ export function SuratTemplateTable({
 
                         <button
                           type="button"
-                          onClick={() => handleToggleActive(tpl)}
+                          onClick={() => handleToggleClick(tpl)}
                           disabled={togglingId === tpl.id}
                           className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 font-semibold shadow-xs transition-colors ${
                             tpl.is_active
@@ -219,6 +230,55 @@ export function SuratTemplateTable({
           <span>Perubahan konten otomatis menaikkan versi untuk menjaga integritas surat historis</span>
         </div>
       </div>
+
+      {/* Modal Konfirmasi Nonaktifkan */}
+      {deactivatingItem && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-xs"
+        >
+          <div className="w-full max-w-sm rounded-3xl border border-line bg-surface p-6 shadow-panel">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-2xl bg-amber-50 text-amber-600">
+                <AlertTriangle size={20} />
+              </span>
+              <h3 className="text-base font-bold text-ink">Nonaktifkan Template Surat?</h3>
+            </div>
+
+            <p className="mt-3 text-xs text-muted leading-relaxed">
+              Apakah Anda yakin ingin menonaktifkan template{" "}
+              <span className="font-semibold text-ink">&quot;{deactivatingItem.judul}&quot;</span> (v{deactivatingItem.versi})?
+              Surat-surat yang pernah diterbitkan menggunakan template ini tetap valid dan tidak berubah, namun template tidak akan digunakan untuk penerbitan surat baru.
+            </p>
+
+            <div className="mt-6 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setDeactivatingItem(null)}
+                className="rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-muted hover:text-ink transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => executeToggle(deactivatingItem)}
+                disabled={togglingId === deactivatingItem.id}
+                className="button-primary bg-amber-600 hover:bg-amber-700 text-xs font-bold text-white shadow-xs flex items-center gap-1.5"
+              >
+                {togglingId === deactivatingItem.id ? (
+                  <>
+                    <Loader2 aria-hidden className="animate-spin" size={13} />
+                    <span>Memproses...</span>
+                  </>
+                ) : (
+                  <span>Ya, Nonaktifkan</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

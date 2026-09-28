@@ -122,6 +122,47 @@ export async function apiRequest<T>(
   return parseSuccess<T>(response);
 }
 
+export async function apiDownloadBlob(
+  path: string,
+  fallbackFilename = "dokumen.pdf",
+): Promise<void> {
+  const url = buildApiUrl(path);
+  const requestInit: RequestInit = {
+    method: "GET",
+    credentials: "include",
+  };
+
+  let response = await fetch(url, requestInit);
+
+  if (response.status === 401) {
+    const refreshed = await performRefresh();
+    if (refreshed) {
+      response = await fetch(url, requestInit);
+    }
+  }
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  const disposition = response.headers.get("content-disposition") || "";
+  let filename = fallbackFilename;
+  const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+  if (match && match[1]) {
+    filename = match[1].replace(/['"]/g, "").trim();
+  }
+
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = downloadUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(downloadUrl);
+}
+
 export function getApiErrorMessage(error: unknown) {
   return error instanceof ApiError
     ? error.message
