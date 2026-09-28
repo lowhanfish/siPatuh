@@ -73,133 +73,137 @@ function EditUserModalContent({
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-xs"
+      className="fixed inset-0 z-50 overflow-y-auto bg-ink/40 backdrop-blur-xs p-4 sm:p-6"
     >
-      <div className="w-full max-w-lg rounded-3xl border border-line bg-surface p-6 shadow-panel sm:p-8">
-        <div className="flex items-center justify-between border-b border-line pb-4">
-          <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-2xl bg-brand-soft text-brand">
-              <UserCog aria-hidden size={20} />
-            </span>
-            <div>
-              <h2 id="edit-modal-title" className="text-lg font-bold text-ink sm:text-xl">
-                Ubah Hak Akses Pengguna
-              </h2>
-              <p className="text-xs text-muted">
-                Perbarui peran sistem atau pindah penugasan wilayah Irban
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="grid size-8 place-items-center rounded-xl text-muted hover:bg-canvas hover:text-ink transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="mt-4 rounded-xl border border-line bg-canvas/40 p-3.5 text-xs space-y-1">
-          <p className="font-bold text-ink">
-            {user.identity?.nama || user.identity?.username}
-          </p>
-          <p className="text-muted">
-            @{user.identity?.username} • NIP: {user.identity?.nip || "-"}
-          </p>
-          {user.identity?.unit_kerja && (
-            <p className="text-muted">Unit: {user.identity.unit_kerja}</p>
-          )}
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-5 space-y-5">
-          {formError && (
-            <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
-              <AlertCircle className="size-4 shrink-0 text-rose-600" />
-              <span>{formError}</span>
-            </div>
-          )}
-
-          {/* Pemilihan Role */}
-          <div className="space-y-1.5">
-            <label htmlFor="edit-role" className="form-label text-xs">
-              Peran Pengguna (Role) *
-            </label>
-            <select
-              id="edit-role"
-              value={role}
-              onChange={(e) => {
-                const val = e.target.value as Role;
-                setRole(val);
-                setFormError(null);
-              }}
-              className="form-input text-xs sm:text-sm cursor-pointer"
-            >
-              <option value="ADMIN_IRBAN">ADMIN_IRBAN (Pengelola Operasional Wilayah Irban)</option>
-              <option value="SUPER_ADMIN">SUPER_ADMIN (Inspektur / Administrator Utama)</option>
-              <option value="BUPATI">BUPATI (Pimpinan Eksekutif / Read-Only)</option>
-            </select>
-          </div>
-
-          {/* Pemilihan Wilayah Irban */}
-          {role === "ADMIN_IRBAN" && (
-            <div className="space-y-1.5">
-              <label htmlFor="edit-irban" className="form-label text-xs">
-                Penugasan Wilayah Irban *
-              </label>
-              <div className="relative">
-                <Building2
-                  aria-hidden
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
-                  size={16}
-                />
-                <select
-                  id="edit-irban"
-                  value={irbanId}
-                  onChange={(e) => {
-                    setIrbanId(e.target.value);
-                    setFormError(null);
-                  }}
-                  className="form-input pl-10 text-xs sm:text-sm cursor-pointer"
-                  required
-                >
-                  <option value="">-- Pilih Wilayah Irban --</option>
-                  {irbans.map((irb, idx) => (
-                    <option key={irb.id || `irban-${idx}`} value={irb.id}>
-                      {irb.nama} ({irb.kode})
-                    </option>
-                  ))}
-                </select>
+      <div className="flex min-h-full items-start sm:items-center justify-center py-4 sm:py-8">
+        <div className="w-full max-w-lg rounded-3xl border border-line bg-surface p-6 shadow-panel sm:p-8 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col my-auto">
+          <div className="shrink-0 flex items-center justify-between border-b border-line pb-4">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-2xl bg-brand-soft text-brand">
+                <UserCog aria-hidden size={20} />
+              </span>
+              <div>
+                <h2 id="edit-modal-title" className="text-lg font-bold text-ink sm:text-xl">
+                  Ubah Hak Akses Pengguna
+                </h2>
+                <p className="text-xs text-muted">
+                  Perbarui peran sistem atau pindah penugasan wilayah Irban
+                </p>
               </div>
             </div>
-          )}
-
-          <div className="flex items-center justify-end gap-3 border-t border-line/60 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-line bg-surface px-4 py-2.5 text-xs font-semibold text-muted hover:text-ink transition-colors"
+              className="grid size-8 place-items-center rounded-xl text-muted hover:bg-canvas hover:text-ink transition-colors"
             >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={updateMutation.isPending}
-              className="button-primary text-xs sm:text-sm flex items-center gap-1.5"
-            >
-              {updateMutation.isPending ? (
-                <>
-                  <Loader2 aria-hidden className="animate-spin" size={14} />
-                  <span>Menyimpan...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 size={16} />
-                  <span>Simpan Perubahan</span>
-                </>
-              )}
+              <X size={18} />
             </button>
           </div>
-        </form>
+
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden mt-4">
+            <div className="overflow-y-auto pr-1 -mr-1 py-1 space-y-5 flex-1 min-h-0">
+              <div className="rounded-xl border border-line bg-canvas/40 p-3.5 text-xs space-y-1">
+                <p className="font-bold text-ink">
+                  {user.identity?.nama || user.identity?.username}
+                </p>
+                <p className="text-muted">
+                  @{user.identity?.username} • NIP: {user.identity?.nip || "-"}
+                </p>
+                {user.identity?.unit_kerja && (
+                  <p className="text-muted">Unit: {user.identity.unit_kerja}</p>
+                )}
+              </div>
+
+              {formError && (
+                <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+                  <AlertCircle className="size-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
+
+              {/* Pemilihan Role */}
+              <div className="space-y-1.5">
+                <label htmlFor="edit-role" className="form-label text-xs">
+                  Peran Pengguna (Role) *
+                </label>
+                <select
+                  id="edit-role"
+                  value={role}
+                  onChange={(e) => {
+                    const val = e.target.value as Role;
+                    setRole(val);
+                    setFormError(null);
+                  }}
+                  className="form-input text-xs sm:text-sm cursor-pointer"
+                >
+                  <option value="ADMIN_IRBAN">ADMIN_IRBAN (Pengelola Operasional Wilayah Irban)</option>
+                  <option value="SUPER_ADMIN">SUPER_ADMIN (Inspektur / Administrator Utama)</option>
+                  <option value="BUPATI">BUPATI (Pimpinan Eksekutif / Read-Only)</option>
+                </select>
+              </div>
+
+              {/* Pemilihan Wilayah Irban */}
+              {role === "ADMIN_IRBAN" && (
+                <div className="space-y-1.5">
+                  <label htmlFor="edit-irban" className="form-label text-xs">
+                    Penugasan Wilayah Irban *
+                  </label>
+                  <div className="relative">
+                    <Building2
+                      aria-hidden
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
+                      size={16}
+                    />
+                    <select
+                      id="edit-irban"
+                      value={irbanId}
+                      onChange={(e) => {
+                        setIrbanId(e.target.value);
+                        setFormError(null);
+                      }}
+                      className="form-input pl-10 text-xs sm:text-sm cursor-pointer"
+                      required
+                    >
+                      <option value="">-- Pilih Wilayah Irban --</option>
+                      {irbans.map((irb, idx) => (
+                        <option key={irb.id || `irban-${idx}`} value={irb.id}>
+                          {irb.nama} ({irb.kode})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="shrink-0 flex items-center justify-end gap-3 border-t border-line/60 pt-4 mt-4 bg-surface">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-xl border border-line bg-surface px-4 py-2.5 text-xs font-semibold text-muted hover:text-ink transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="button-primary text-xs sm:text-sm flex items-center gap-1.5"
+              >
+                {updateMutation.isPending ? (
+                  <>
+                    <Loader2 aria-hidden className="animate-spin" size={14} />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={16} />
+                    <span>Simpan Perubahan</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

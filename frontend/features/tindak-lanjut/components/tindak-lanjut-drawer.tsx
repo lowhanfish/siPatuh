@@ -103,10 +103,11 @@ export function TindakLanjutDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col rounded-3xl border border-line bg-surface shadow-modal overflow-hidden">
-        {/* Header Modal */}
-        <div className="flex items-center justify-between border-b border-line px-5 py-4 bg-canvas/40">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-150">
+      <div className="flex min-h-full items-start sm:items-center justify-center py-4 sm:py-8">
+        <div className="relative flex max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] w-full max-w-4xl flex-col rounded-3xl border border-line bg-surface shadow-modal overflow-hidden my-auto">
+          {/* Header Modal */}
+          <div className="shrink-0 flex items-center justify-between border-b border-line px-5 py-4 bg-canvas/40">
           <div className="space-y-0.5">
             <div className="flex items-center gap-2">
               <span className="eyebrow">Tindak Lanjut & Verifikasi</span>
@@ -405,7 +406,7 @@ export function TindakLanjutDrawer({
         </div>
 
         {/* Footer Modal */}
-        <div className="flex items-center justify-between border-t border-line px-5 py-3.5 bg-canvas/40 text-2xs text-muted">
+        <div className="shrink-0 flex items-center justify-between border-t border-line px-5 py-3.5 bg-canvas/40 text-2xs text-muted">
           <div className="flex items-center gap-2">
             <Lock size={12} />
             <span>Verifikasi manual 100% oleh Tim Irban / Super Admin.</span>
@@ -419,6 +420,7 @@ export function TindakLanjutDrawer({
           </button>
         </div>
       </div>
+    </div>
 
       {/* Modal Input TL */}
       <TindakLanjutModal

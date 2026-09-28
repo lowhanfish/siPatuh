@@ -108,51 +108,53 @@ function SuratTemplateModalContent({
       role="dialog"
       aria-modal="true"
       aria-labelledby="template-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-xs"
+      className="fixed inset-0 z-50 overflow-y-auto bg-ink/40 backdrop-blur-xs p-4 sm:p-6"
     >
-      <div className="w-full max-w-3xl rounded-3xl border border-line bg-surface p-6 shadow-panel sm:p-8 max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-line pb-4">
-          <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-2xl bg-brand-soft text-brand">
-              <FileCode aria-hidden size={20} />
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 id="template-modal-title" className="text-lg font-bold text-ink sm:text-xl">
-                  {isEditing ? `Ubah Template Surat (Versi ${template.versi})` : "Tambah Template Surat Baru"}
-                </h2>
+      <div className="flex min-h-full items-start sm:items-center justify-center py-4 sm:py-8">
+        <div className="w-full max-w-3xl rounded-3xl border border-line bg-surface p-6 shadow-panel sm:p-8 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col my-auto">
+          <div className="shrink-0 flex items-center justify-between border-b border-line pb-4">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-2xl bg-brand-soft text-brand">
+                <FileCode aria-hidden size={20} />
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 id="template-modal-title" className="text-lg font-bold text-ink sm:text-xl">
+                    {isEditing ? `Ubah Template Surat (Versi ${template.versi})` : "Tambah Template Surat Baru"}
+                  </h2>
+                </div>
+                <p className="text-xs text-muted">
+                  Format surat peringatan resmi berbasis HTML dengan tag variabel dinamis
+                </p>
               </div>
-              <p className="text-xs text-muted">
-                Format surat peringatan resmi berbasis HTML dengan tag variabel dinamis
-              </p>
             </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid size-8 place-items-center rounded-xl text-muted hover:bg-canvas hover:text-ink transition-colors"
+            >
+              <X size={18} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="grid size-8 place-items-center rounded-xl text-muted hover:bg-canvas hover:text-ink transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </div>
 
-        {/* Informasi Versioning Backend */}
-        {isEditing && (
-          <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-900 flex items-start gap-2.5">
-            <Info className="size-4 shrink-0 text-brand mt-0.5" />
-            <div className="leading-relaxed">
-              <strong className="font-semibold">Aturan Versioning Non-Retroaktif:</strong> Mengubah konten HTML akan otomatis menerbitkan <strong>Versi {template.versi + 1}</strong>. Surat peringatan historis yang telah terbit sebelumnya tetap menggunakan arsip versi aslinya.
-            </div>
-          </div>
-        )}
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden mt-4">
+            <div className="overflow-y-auto pr-1 -mr-1 py-1 space-y-4 flex-1 min-h-0">
+              {/* Informasi Versioning Backend */}
+              {isEditing && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-900 flex items-start gap-2.5">
+                  <Info className="size-4 shrink-0 text-brand mt-0.5" />
+                  <div className="leading-relaxed">
+                    <strong className="font-semibold">Aturan Versioning Non-Retroaktif:</strong> Mengubah konten HTML akan otomatis menerbitkan <strong>Versi {template.versi + 1}</strong>. Surat peringatan historis yang telah terbit sebelumnya tetap menggunakan arsip versi aslinya.
+                  </div>
+                </div>
+              )}
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          {formError && (
-            <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
-              <AlertCircle className="size-4 shrink-0 text-rose-600" />
-              <span>{formError}</span>
-            </div>
-          )}
+              {formError && (
+                <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+                  <AlertCircle className="size-4 shrink-0 text-rose-600" />
+                  <span>{formError}</span>
+                </div>
+              )}
 
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
@@ -247,8 +249,9 @@ function SuratTemplateModalContent({
               required
             />
           </div>
+            </div>
 
-          <div className="flex items-center justify-end gap-3 border-t border-line/60 pt-4">
+          <div className="shrink-0 flex items-center justify-end gap-3 border-t border-line/60 pt-4 mt-4 bg-surface">
             <button
               type="button"
               onClick={onClose}
@@ -277,5 +280,6 @@ function SuratTemplateModalContent({
         </form>
       </div>
     </div>
-  );
+  </div>
+);
 }

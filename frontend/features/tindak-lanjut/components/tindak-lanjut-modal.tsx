@@ -153,169 +153,173 @@ function TindakLanjutModalContent({
       role="dialog"
       aria-modal="true"
       aria-labelledby="tl-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 overflow-y-auto bg-ink/40 backdrop-blur-xs p-4 sm:p-6"
     >
-      <div className="w-full max-w-xl my-8 rounded-3xl border border-line bg-surface p-6 shadow-panel sm:p-8">
-        <div className="flex items-center justify-between border-b border-line pb-4">
-          <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-2xl bg-brand-soft text-brand">
-              <FileUp size={18} />
-            </span>
-            <div>
-              <h2 id="tl-modal-title" className="text-lg font-bold text-ink sm:text-xl">
-                Catat Tindak Lanjut dari OPD
-              </h2>
-              <p className="text-xs text-muted">
-                Rekomendasi #{nomorDisplay}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-line bg-surface p-2 text-muted hover:text-ink transition-colors cursor-pointer"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Ringkasan Rekomendasi */}
-        <div className="mt-4 rounded-xl border border-line/60 bg-canvas/30 p-3 text-xs text-muted">
-          <span className="font-semibold text-ink text-2xs uppercase">Rekomendasi:</span>
-          <p className="mt-0.5 line-clamp-2 text-ink/80">{rekomendasiUraian}</p>
-        </div>
-
-        {formError && (
-          <div className="mt-4 flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800">
-            <AlertCircle className="size-4 shrink-0 mt-0.5 text-rose-600" />
-            <div className="space-y-1">
-              <p className="font-bold">Gagal Menyimpan Tindak Lanjut</p>
-              <p className="text-rose-700">{formError}</p>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          <div>
-            <label className="flex items-center gap-1.5 text-xs font-bold text-ink">
-              <Calendar size={13} className="text-brand" />
-              <span>Tanggal Dokumen Diterima dari OPD</span>
-              <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="date"
-              value={tanggalDiterima}
-              onChange={(e) => setTanggalDiterima(e.target.value)}
-              className="form-input mt-1.5 text-xs sm:text-sm font-semibold"
-              required
-            />
-            <p className="mt-1 text-2xs text-muted">
-              Tanggal fisik berkas/bukti tindak lanjut diterima di loket atau sekretariat Inspektorat.
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-ink">
-              Uraian Tindak Lanjut / Bukti yang Diserahkan <span className="text-rose-500">*</span>
-            </label>
-            <textarea
-              rows={4}
-              placeholder="Jelaskan naskah dinas, bukti setor STS, foto fisik, atau dokumen pendukung yang diserahkan oleh OPD..."
-              value={uraian}
-              onChange={(e) => setUraian(e.target.value)}
-              className="form-input mt-1.5 text-xs leading-relaxed"
-              required
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-ink">
-                Nilai Setoran Kas / Pengembalian (Opsional)
-              </label>
-              {previewFormatted && (
-                <span className="text-2xs font-bold text-brand">
-                  {previewFormatted}
-                </span>
-              )}
-            </div>
-            <input
-              type="text"
-              placeholder="Contoh: 15000000 (Kosongkan bila bukan tindak lanjut penyetoran uang)"
-              value={nilaiTindakLanjutInput}
-              onChange={(e) => setNilaiTindakLanjutInput(e.target.value)}
-              className="form-input mt-1.5 text-xs font-mono"
-            />
-          </div>
-
-          {/* Unggah Berkas Multi-file */}
-          <div className="rounded-2xl border border-dashed border-line bg-canvas/30 p-4">
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-ink">
-                <Paperclip size={14} className="text-brand" />
-                <span>Lampiran Berkas Bukti (PDF, Gambar, Dokumen)</span>
-              </label>
-              <span className="text-2xs text-muted">Maks 20 MB / berkas</span>
-            </div>
-
-            <input
-              type="file"
-              multiple
-              accept="application/pdf,image/jpeg,image/png,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              onChange={handleFileChange}
-              className="mt-2 text-xs text-muted file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-soft file:text-brand hover:file:bg-brand/15 cursor-pointer"
-            />
-
-            {selectedFiles.length > 0 && (
-              <div className="mt-3 space-y-1.5">
-                <span className="text-2xs font-bold text-ink">Berkas Terpilih ({selectedFiles.length}):</span>
-                <div className="max-h-32 overflow-y-auto space-y-1">
-                  {selectedFiles.map((file, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between rounded-lg border border-line bg-surface px-2.5 py-1 text-2xs"
-                    >
-                      <span className="truncate max-w-[280px] font-medium text-ink">
-                        {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFile(idx)}
-                        className="text-muted hover:text-rose-600 transition-colors p-0.5"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+      <div className="flex min-h-full items-start sm:items-center justify-center py-4 sm:py-8">
+        <div className="w-full max-w-xl rounded-3xl border border-line bg-surface p-6 shadow-panel sm:p-8 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col my-auto">
+          <div className="shrink-0 flex items-center justify-between border-b border-line pb-4">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-2xl bg-brand-soft text-brand">
+                <FileUp size={18} />
+              </span>
+              <div>
+                <h2 id="tl-modal-title" className="text-lg font-bold text-ink sm:text-xl">
+                  Catat Tindak Lanjut dari OPD
+                </h2>
+                <p className="text-xs text-muted">
+                  Rekomendasi #{nomorDisplay}
+                </p>
               </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-end gap-3 border-t border-line pt-4 mt-6">
+            </div>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-line bg-surface px-4 py-2 text-xs font-semibold text-muted hover:text-ink transition-colors cursor-pointer"
+              className="rounded-xl border border-line bg-surface p-2 text-muted hover:text-ink transition-colors cursor-pointer"
             >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="button-primary text-xs font-bold shadow-xs flex items-center gap-1.5"
-            >
-              {createMutation.isPending ? (
-                <>
-                  <Loader2 aria-hidden className="animate-spin" size={14} />
-                  <span>Menyimpan...</span>
-                </>
-              ) : (
-                <span>Simpan Tindak Lanjut</span>
-              )}
+              <X size={16} />
             </button>
           </div>
-        </form>
+
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden mt-4">
+            <div className="overflow-y-auto pr-1 -mr-1 py-1 space-y-4 flex-1 min-h-0">
+              {/* Ringkasan Rekomendasi */}
+              <div className="rounded-xl border border-line/60 bg-canvas/30 p-3 text-xs text-muted">
+                <span className="font-semibold text-ink text-2xs uppercase">Rekomendasi:</span>
+                <p className="mt-0.5 line-clamp-2 text-ink/80">{rekomendasiUraian}</p>
+              </div>
+
+              {formError && (
+                <div className="flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800">
+                  <AlertCircle className="size-4 shrink-0 mt-0.5 text-rose-600" />
+                  <div className="space-y-1">
+                    <p className="font-bold">Gagal Menyimpan Tindak Lanjut</p>
+                    <p className="text-rose-700">{formError}</p>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold text-ink">
+                  <Calendar size={13} className="text-brand" />
+                  <span>Tanggal Dokumen Diterima dari OPD</span>
+                  <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={tanggalDiterima}
+                  onChange={(e) => setTanggalDiterima(e.target.value)}
+                  className="form-input mt-1.5 text-xs sm:text-sm font-semibold"
+                  required
+                />
+                <p className="mt-1 text-2xs text-muted">
+                  Tanggal fisik berkas/bukti tindak lanjut diterima di loket atau sekretariat Inspektorat.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-ink">
+                  Uraian Tindak Lanjut / Bukti yang Diserahkan <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={4}
+                  placeholder="Jelaskan naskah dinas, bukti setor STS, foto fisik, atau dokumen pendukung yang diserahkan oleh OPD..."
+                  value={uraian}
+                  onChange={(e) => setUraian(e.target.value)}
+                  className="form-input mt-1.5 text-xs leading-relaxed"
+                  required
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-ink">
+                    Nilai Setoran Kas / Pengembalian (Opsional)
+                  </label>
+                  {previewFormatted && (
+                    <span className="text-2xs font-bold text-brand">
+                      {previewFormatted}
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  placeholder="Contoh: 15000000 (Kosongkan bila bukan tindak lanjut penyetoran uang)"
+                  value={nilaiTindakLanjutInput}
+                  onChange={(e) => setNilaiTindakLanjutInput(e.target.value)}
+                  className="form-input mt-1.5 text-xs font-mono"
+                />
+              </div>
+
+              {/* Unggah Berkas Multi-file */}
+              <div className="rounded-2xl border border-dashed border-line bg-canvas/30 p-4">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-ink">
+                    <Paperclip size={14} className="text-brand" />
+                    <span>Lampiran Berkas Bukti (PDF, Gambar, Dokumen)</span>
+                  </label>
+                  <span className="text-2xs text-muted">Maks 20 MB / berkas</span>
+                </div>
+
+                <input
+                  type="file"
+                  multiple
+                  accept="application/pdf,image/jpeg,image/png,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  onChange={handleFileChange}
+                  className="mt-2 text-xs text-muted file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-soft file:text-brand hover:file:bg-brand/15 cursor-pointer"
+                />
+
+                {selectedFiles.length > 0 && (
+                  <div className="mt-3 space-y-1.5">
+                    <span className="text-2xs font-bold text-ink">Berkas Terpilih ({selectedFiles.length}):</span>
+                    <div className="max-h-32 overflow-y-auto space-y-1">
+                      {selectedFiles.map((file, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between rounded-lg border border-line bg-surface px-2.5 py-1 text-2xs"
+                        >
+                          <span className="truncate max-w-[280px] font-medium text-ink">
+                            {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFile(idx)}
+                            className="text-muted hover:text-rose-600 transition-colors p-0.5"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="shrink-0 flex items-center justify-end gap-3 border-t border-line pt-4 mt-4 bg-surface">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-xl border border-line bg-surface px-4 py-2 text-xs font-semibold text-muted hover:text-ink transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="button-primary text-xs font-bold shadow-xs flex items-center gap-1.5"
+              >
+                {createMutation.isPending ? (
+                  <>
+                    <Loader2 aria-hidden className="animate-spin" size={14} />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <span>Simpan Tindak Lanjut</span>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

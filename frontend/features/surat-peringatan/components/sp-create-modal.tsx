@@ -71,8 +71,9 @@ function SpCreateFormContent({ lhp, onClose }: FormContentProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
-      {/* Info Sasaran LHP & OPD */}
+    <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <div className="overflow-y-auto p-5 sm:p-6 space-y-5 flex-1 min-h-0">
+        {/* Info Sasaran LHP & OPD */}
       <div className="rounded-2xl border border-line bg-canvas/30 p-4 space-y-2 text-xs">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line/60 pb-2">
           <span className="font-bold text-ink">{lhp.nomor_lhp}</span>
@@ -195,8 +196,10 @@ function SpCreateFormContent({ lhp, onClose }: FormContentProps) {
         </span>
       </div>
 
+      </div>
+
       {/* Footer Actions */}
-      <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-line">
+      <div className="shrink-0 flex items-center justify-end gap-2.5 p-4 sm:p-5 border-t border-line bg-surface">
         <button
           type="button"
           onClick={onClose}
@@ -231,27 +234,33 @@ export function SpCreateModal({ isOpen, onClose, lhp }: SpCreateModalProps) {
   if (!isOpen || !lhp) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="relative flex max-h-[92vh] w-full max-w-2xl flex-col rounded-3xl border border-line bg-surface shadow-modal overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-line px-5 py-4 bg-canvas/40">
-          <div className="space-y-0.5">
-            <span className="eyebrow">Penerbitan Surat Peringatan</span>
-            <h3 className="text-base font-bold text-ink sm:text-lg">
-              Buat Draft Surat Peringatan
-            </h3>
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-150"
+    >
+      <div className="flex min-h-full items-start sm:items-center justify-center py-4 sm:py-8">
+        <div className="relative flex max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] w-full max-w-2xl flex-col rounded-3xl border border-line bg-surface shadow-modal overflow-hidden my-auto">
+          {/* Header */}
+          <div className="shrink-0 flex items-center justify-between border-b border-line px-5 py-4 bg-canvas/40">
+            <div className="space-y-0.5">
+              <span className="eyebrow">Penerbitan Surat Peringatan</span>
+              <h3 className="text-base font-bold text-ink sm:text-lg">
+                Buat Draft Surat Peringatan
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full p-2 text-muted hover:bg-canvas hover:text-ink transition-colors cursor-pointer"
+            >
+              <X size={20} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full p-2 text-muted hover:bg-canvas hover:text-ink transition-colors cursor-pointer"
-          >
-            <X size={20} />
-          </button>
-        </div>
 
-        {/* Dynamic Form Content */}
-        <SpCreateFormContent key={lhp.lhp_id} lhp={lhp} onClose={onClose} />
+          {/* Dynamic Form Content */}
+          <SpCreateFormContent key={lhp.lhp_id} lhp={lhp} onClose={onClose} />
+        </div>
       </div>
     </div>
   );

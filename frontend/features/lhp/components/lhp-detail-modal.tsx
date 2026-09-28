@@ -127,64 +127,66 @@ function LhpDetailModalContent({
       role="dialog"
       aria-modal="true"
       aria-labelledby="lhp-detail-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 overflow-y-auto bg-ink/40 backdrop-blur-xs p-4 sm:p-6"
     >
-      <div className="w-full max-w-3xl my-8 rounded-3xl border border-line bg-surface p-6 shadow-panel sm:p-8 space-y-6">
-        {/* Header Modal */}
-        <div className="flex items-start justify-between border-b border-line pb-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="eyebrow">Detail Pemeriksaan</span>
+      <div className="flex min-h-full items-start sm:items-center justify-center py-4 sm:py-8">
+        <div className="w-full max-w-3xl rounded-3xl border border-line bg-surface p-6 shadow-panel sm:p-8 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col my-auto">
+          {/* Header Modal */}
+          <div className="shrink-0 flex items-start justify-between border-b border-line pb-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="eyebrow">Detail Pemeriksaan</span>
+                {lhp && (
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-2xs font-bold ${
+                      lhp.is_closed
+                        ? "bg-slate-100 text-slate-700 border border-slate-300"
+                        : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    }`}
+                  >
+                    {lhp.is_closed ? <Lock size={11} /> : <CheckCircle2 size={11} />}
+                    {lhp.is_closed ? "Selesai (Closed)" : "Aktif (Dalam Pemantauan)"}
+                  </span>
+                )}
+              </div>
+              <h2 id="lhp-detail-title" className="text-xl font-bold text-ink sm:text-2xl">
+                {lhp ? lhp.nomor_lhp : "Memuat Dokumen LHP..."}
+              </h2>
               {lhp && (
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-2xs font-bold ${
-                    lhp.is_closed
-                      ? "bg-slate-100 text-slate-700 border border-slate-300"
-                      : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                  }`}
-                >
-                  {lhp.is_closed ? <Lock size={11} /> : <CheckCircle2 size={11} />}
-                  {lhp.is_closed ? "Selesai (Closed)" : "Aktif (Dalam Pemantauan)"}
-                </span>
+                <p className="text-xs text-muted flex items-center gap-1.5 font-medium">
+                  <Building2 size={13} className="text-muted" />
+                  <span>{lhp.unit_kerja_nama}</span>
+                  <span>•</span>
+                  <span>{lhp.irban.nama}</span>
+                </p>
               )}
             </div>
-            <h2 id="lhp-detail-title" className="text-xl font-bold text-ink sm:text-2xl">
-              {lhp ? lhp.nomor_lhp : "Memuat Dokumen LHP..."}
-            </h2>
-            {lhp && (
-              <p className="text-xs text-muted flex items-center gap-1.5 font-medium">
-                <Building2 size={13} className="text-muted" />
-                <span>{lhp.unit_kerja_nama}</span>
-                <span>•</span>
-                <span>{lhp.irban.nama}</span>
-              </p>
-            )}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-line bg-surface p-2 text-muted hover:text-ink transition-colors cursor-pointer"
+            >
+              <X size={16} />
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-line bg-surface p-2 text-muted hover:text-ink transition-colors cursor-pointer"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Loading & Error States */}
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Loader2 className="animate-spin text-brand" size={32} />
-            <p className="mt-3 text-xs text-muted">Mengambil rincian LHP...</p>
-          </div>
-        ) : error || !lhp ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center text-xs text-rose-800">
-            <AlertCircle className="mx-auto size-8 text-rose-600 mb-2" />
-            <p className="font-bold text-sm">Gagal Mengambil Detail LHP</p>
-            <p className="mt-1">{getApiErrorMessage(error)}</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Banner State: Jika LHP Sudah Ditutup */}
+          {/* Loading & Error States */}
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Loader2 className="animate-spin text-brand" size={32} />
+              <p className="mt-3 text-xs text-muted">Mengambil rincian LHP...</p>
+            </div>
+          ) : error || !lhp ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center text-xs text-rose-800">
+              <AlertCircle className="mx-auto size-8 text-rose-600 mb-2" />
+              <p className="font-bold text-sm">Gagal Mengambil Detail LHP</p>
+              <p className="mt-1">{getApiErrorMessage(error)}</p>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden mt-4">
+              <div className="overflow-y-auto pr-1 -mr-1 py-1 space-y-6 flex-1 min-h-0">
+                {/* Banner State: Jika LHP Sudah Ditutup */}
             {lhp.is_closed && (
               <div className="flex items-start justify-between rounded-2xl border border-slate-300 bg-slate-50 p-4 text-xs text-slate-800">
                 <div className="flex items-start gap-2.5">
@@ -387,48 +389,51 @@ function LhpDetailModalContent({
               </div>
             )}
 
-            {/* Footer Aksi Modal */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-              <div className="flex items-center gap-2">
-                {canMutate && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onEdit(lhp);
-                    }}
-                    className="rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink hover:border-brand hover:text-brand shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Edit2 size={13} />
-                    <span>Ubah Metadata</span>
-                  </button>
-                )}
-
-                {canMutate && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onCloseLhp(lhp);
-                    }}
-                    className="rounded-xl border border-slate-300 bg-slate-100 hover:bg-slate-200 px-3 py-2 text-xs font-semibold text-slate-800 shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <FileCheck size={13} />
-                    <span>Tandai Selesai</span>
-                  </button>
-                )}
               </div>
 
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-xl border border-line bg-surface px-4 py-2 text-xs font-semibold text-muted hover:text-ink transition-colors cursor-pointer"
-              >
-                Tutup
-              </button>
+              {/* Footer Aksi Modal - Fixed at Bottom */}
+              <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4 mt-4 bg-surface">
+                <div className="flex items-center gap-2">
+                  {canMutate && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onEdit(lhp);
+                      }}
+                      className="rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-ink hover:border-brand hover:text-brand shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Edit2 size={13} />
+                      <span>Ubah Metadata</span>
+                    </button>
+                  )}
+
+                  {canMutate && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onCloseLhp(lhp);
+                      }}
+                      className="rounded-xl border border-slate-300 bg-slate-100 hover:bg-slate-200 px-3 py-2 text-xs font-semibold text-slate-800 shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <FileCheck size={13} />
+                      <span>Tandai Selesai</span>
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-xl border border-line bg-surface px-4 py-2 text-xs font-semibold text-muted hover:text-ink transition-colors cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

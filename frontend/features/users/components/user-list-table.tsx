@@ -303,65 +303,67 @@ export function UserListTable({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/40 backdrop-blur-xs"
+          className="fixed inset-0 z-50 overflow-y-auto bg-ink/40 backdrop-blur-xs p-4 sm:p-6"
         >
-          <div className="w-full max-w-sm rounded-3xl border border-line bg-surface p-6 shadow-panel">
-            <div className="flex items-center gap-3">
-              <span
-                className={`grid size-10 place-items-center rounded-2xl ${
-                  toggleConfirmUser.is_active
-                    ? "bg-rose-50 text-rose-600"
-                    : "bg-emerald-50 text-emerald-600"
-                }`}
-              >
-                <AlertTriangle size={20} />
-              </span>
-              <h3 className="text-base font-bold text-ink">
-                {toggleConfirmUser.is_active ? "Nonaktifkan Pengguna?" : "Aktifkan Pengguna?"}
-              </h3>
-            </div>
+          <div className="flex min-h-full items-start sm:items-center justify-center py-4 sm:py-8">
+            <div className="w-full max-w-sm rounded-3xl border border-line bg-surface p-6 shadow-panel my-auto max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col">
+              <div className="flex items-center gap-3">
+                <span
+                  className={`grid size-10 place-items-center rounded-2xl ${
+                    toggleConfirmUser.is_active
+                      ? "bg-rose-50 text-rose-600"
+                      : "bg-emerald-50 text-emerald-600"
+                  }`}
+                >
+                  <AlertTriangle size={20} />
+                </span>
+                <h3 className="text-base font-bold text-ink">
+                  {toggleConfirmUser.is_active ? "Nonaktifkan Pengguna?" : "Aktifkan Pengguna?"}
+                </h3>
+              </div>
 
-            <p className="mt-3 text-xs text-muted leading-relaxed">
-              Apakah Anda yakin ingin{" "}
-              <strong>
-                {toggleConfirmUser.is_active ? "menonaktifkan" : "mengaktifkan kembali"}
-              </strong>{" "}
-              akses akun{" "}
-              <span className="font-semibold text-ink">
-                {toggleConfirmUser.identity?.nama || toggleConfirmUser.identity?.username}
-              </span>
-              ? Akun di EGOV tetap aman dan tidak terpengaruh.
-            </p>
+              <p className="mt-3 text-xs text-muted leading-relaxed">
+                Apakah Anda yakin ingin{" "}
+                <strong>
+                  {toggleConfirmUser.is_active ? "menonaktifkan" : "mengaktifkan kembali"}
+                </strong>{" "}
+                akses akun{" "}
+                <span className="font-semibold text-ink">
+                  {toggleConfirmUser.identity?.nama || toggleConfirmUser.identity?.username}
+                </span>
+                ? Akun di EGOV tetap aman dan tidak terpengaruh.
+              </p>
 
-            <div className="mt-6 flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setToggleConfirmUser(null)}
-                className="rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-muted hover:text-ink transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmToggle}
-                disabled={toggleMutation.isPending}
-                className={`rounded-xl px-3.5 py-2 text-xs font-bold text-white shadow-xs transition-colors flex items-center gap-1.5 ${
-                  toggleConfirmUser.is_active
-                    ? "bg-rose-600 hover:bg-rose-700"
-                    : "bg-emerald-600 hover:bg-emerald-700"
-                }`}
-              >
-                {toggleMutation.isPending ? (
-                  <>
-                    <Loader2 aria-hidden className="animate-spin" size={13} />
-                    <span>Memproses...</span>
-                  </>
-                ) : (
-                  <span>
-                    Ya, {toggleConfirmUser.is_active ? "Nonaktifkan" : "Aktifkan"}
-                  </span>
-                )}
-              </button>
+              <div className="mt-6 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setToggleConfirmUser(null)}
+                  className="rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-muted hover:text-ink transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmToggle}
+                  disabled={toggleMutation.isPending}
+                  className={`rounded-xl px-3.5 py-2 text-xs font-bold text-white shadow-xs transition-colors flex items-center gap-1.5 ${
+                    toggleConfirmUser.is_active
+                      ? "bg-rose-600 hover:bg-rose-700"
+                      : "bg-emerald-600 hover:bg-emerald-700"
+                  }`}
+                >
+                  {toggleMutation.isPending ? (
+                    <>
+                      <Loader2 aria-hidden className="animate-spin" size={13} />
+                      <span>Memproses...</span>
+                    </>
+                  ) : (
+                    <span>
+                      Ya, {toggleConfirmUser.is_active ? "Nonaktifkan" : "Aktifkan"}
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
