@@ -4,6 +4,9 @@
 All Checkpoints Completed: F01 - F14 (Frontend & Backend Production Ready)
 
 ## Completed in this session
+- **Dokumentasi Pengguna (User Manual & Operational Guide)**:
+  - Menyusun buku panduan lengkap pengoperasian aplikasi di `docs/PANDUAN_PENGGUNA.md` mencakup panduan per role (Super Admin / Inspektur, Admin Irban, Bupati), alur end-to-end LHP, Temuan & Rekomendasi, Tindak Lanjut & Verifikasi, Surat Peringatan & TTE BSrE, Dashboard, Pelaporan/Ekspor, Administrasi, serta FAQ & Troubleshooting.
+  - Menyusun file `README.md` pada root repositori dengan ikhtisar arsitektur, quickstart pengembang, dan referensi user manual.
 - **Checkpoint F14 (Frontend QA & Hardening)**:
   - Audit menyeluruh terhadap end-to-end user flow: Autentikasi -> LHP -> Temuan & Rekomendasi -> Tindak Lanjut -> Verifikasi Manual -> Surat Peringatan -> TTE Signing -> Laporan Pengawasan -> Dashboard Pimpinan.
   - Audit keamanan dan privasi data: Kredensial, passphrase TTE, token, dan JWT tidak disimpan di browser storage (localStorage, sessionStorage, cookie client-side, maupun Zustand store).
