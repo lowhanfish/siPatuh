@@ -57,7 +57,7 @@ function NavigationLink({ item, pathname }: { item: NavigationItem; pathname: st
   return (
     <Link
       aria-current={active ? "page" : undefined}
-      className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
+      className={`admin-nav-link group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
         active
           ? "bg-accent text-ink shadow-brand"
           : "text-stone-300 hover:bg-white/8 hover:text-white"
@@ -82,7 +82,7 @@ function SidebarContent({ user, pathname }: { user: AuthUser; pathname: string }
   return (
     <>
       <Link
-        className="flex items-center gap-3 border-b border-white/10 px-5 py-5 text-white"
+        className="admin-brand flex items-center gap-3 border-b border-white/10 px-5 py-6 text-white"
         href={getDefaultRouteForRole(user.role)}
       >
         <span className="grid size-11 place-items-center rounded-xl bg-white text-sm font-bold tracking-wide shadow-sm">
@@ -94,7 +94,7 @@ function SidebarContent({ user, pathname }: { user: AuthUser; pathname: string }
         </span>
       </Link>
 
-      <nav aria-label="Navigasi utama" className="flex-1 overflow-y-auto px-3 py-5">
+      <nav aria-label="Navigasi utama" className="flex-1 overflow-y-auto px-4 py-7">
         {sections.map((section) => {
           const items = navigation.filter((item) => item.section === section);
           if (items.length === 0) return null;
@@ -115,7 +115,7 @@ function SidebarContent({ user, pathname }: { user: AuthUser; pathname: string }
       </nav>
 
       <div className="border-t border-white/10 p-4">
-        <div className="rounded-2xl bg-white/8 p-3 ring-1 ring-white/10">
+        <div className="admin-profile rounded-2xl bg-white/8 p-4 ring-1 ring-white/10">
           <p className="truncate text-sm font-semibold text-white">{user.nama}</p>
           <p className="mt-1 truncate text-xs text-stone-300">{roleLabels[user.role]}</p>
           {user.irban?.nama ? (
@@ -168,8 +168,8 @@ export function AppShell({ children, user }: { children: ReactNode; user: AuthUs
   }
 
   return (
-    <div className="min-h-screen bg-canvas lg:grid lg:grid-cols-[17.5rem_minmax(0,1fr)]">
-      <aside className="hidden h-screen flex-col bg-sidebar lg:sticky lg:top-0 lg:flex">
+    <div className={`min-h-screen bg-canvas lg:grid lg:grid-cols-[17.5rem_minmax(0,1fr)] ${user.role !== "BUPATI" ? "admin-glass" : ""}`}>
+      <aside className="admin-sidebar hidden h-screen flex-col bg-sidebar lg:sticky lg:top-0 lg:flex">
         <SidebarContent pathname={pathname} user={user} />
       </aside>
 
@@ -184,7 +184,7 @@ export function AppShell({ children, user }: { children: ReactNode; user: AuthUs
           <aside
             aria-label="Navigasi mobile"
             aria-modal="true"
-            className="relative flex h-full w-[min(88vw,19rem)] flex-col bg-sidebar shadow-2xl"
+            className="admin-sidebar relative flex h-full w-[min(88vw,19rem)] flex-col bg-sidebar shadow-2xl"
             role="dialog"
           >
             <button
@@ -210,7 +210,7 @@ export function AppShell({ children, user }: { children: ReactNode; user: AuthUs
       ) : null}
 
       <div className="min-w-0">
-        <header className="sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-line bg-surface/92 px-4 backdrop-blur sm:px-6 lg:px-8">
+        <header className="admin-topbar sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b border-line bg-surface/92 px-4 backdrop-blur sm:px-6 lg:px-8">
           <button
             aria-expanded={isMobileNavigationOpen}
             aria-label="Buka navigasi"
@@ -227,6 +227,9 @@ export function AppShell({ children, user }: { children: ReactNode; user: AuthUs
             </h1>
           </div>
           <div className="hidden items-center gap-3 sm:flex">
+            <span aria-hidden className="admin-avatar grid size-10 place-items-center rounded-2xl text-sm font-bold">
+              {user.nama.trim().split(/\s+/).slice(0, 2).map((name) => name[0]).join("")}
+            </span>
             <div className="text-right">
               <p className="max-w-48 truncate text-sm font-semibold text-ink">{user.nama}</p>
               <p className="text-xs text-muted">{roleLabels[user.role]}</p>
@@ -244,7 +247,7 @@ export function AppShell({ children, user }: { children: ReactNode; user: AuthUs
           </div>
         </header>
 
-        <main className="px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">{children}</main>
+        <main className="admin-content px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">{children}</main>
       </div>
     </div>
   );
