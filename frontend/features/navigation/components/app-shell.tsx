@@ -3,6 +3,7 @@
 import { ThemeToggle } from "@/features/theme/theme-toggle";
 
 import "./admin-theme.css";
+import "./admin-typography.css";
 import { AdminScrollMotion } from "./admin-scroll-motion";
 import Link from "next/link";
 import Image from "next/image";

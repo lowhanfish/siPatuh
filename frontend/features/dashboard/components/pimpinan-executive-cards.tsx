@@ -20,18 +20,18 @@ export function PimpinanExecutiveCards({ data }: PimpinanExecutiveCardsProps) {
   return (
     <div className="space-y-4">
       {/* 5 Kartu Ringkasan Eksekutif Pimpinan */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="admin-metric-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {/* Total LHP */}
         <div className="admin-metric rounded-2xl border border-line bg-surface p-4 shadow-card space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-2xs font-bold uppercase tracking-wider text-muted">
+          <div className="admin-metric-heading flex items-center justify-between">
+            <span className="admin-metric-label text-muted">
               Laporan Hasil Pemeriksaan (LHP)
             </span>
             <span className="grid size-8 place-items-center rounded-xl bg-blue-50 text-blue-700">
               <FileText size={16} />
             </span>
           </div>
-          <p className="text-2xl font-extrabold text-ink">{kpi.total_lhp}</p>
+          <p className="admin-metric-value text-2xl font-extrabold text-ink">{kpi.total_lhp}</p>
           <div className="flex items-center gap-2 text-2xs text-muted">
             <span className="font-bold text-emerald-700">{kpi.lhp_closed} Selesai</span>
             <span>•</span>
@@ -41,15 +41,15 @@ export function PimpinanExecutiveCards({ data }: PimpinanExecutiveCardsProps) {
 
         {/* Total Temuan Pengawasan */}
         <div className="admin-metric rounded-2xl border border-line bg-surface p-4 shadow-card space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-2xs font-bold uppercase tracking-wider text-muted">
+          <div className="admin-metric-heading flex items-center justify-between">
+            <span className="admin-metric-label text-muted">
               Temuan Hasil Pemeriksaan
             </span>
             <span className="grid size-8 place-items-center rounded-xl bg-amber-50 text-amber-700">
               <ShieldAlert size={16} />
             </span>
           </div>
-          <p className="text-2xl font-extrabold text-ink">{kpi.total_temuan}</p>
+          <p className="admin-metric-value text-2xl font-extrabold text-ink">{kpi.total_temuan}</p>
           <p className="text-2xs text-muted">
             Mencakup temuan sistem pengendalian internal & kepatuhan
           </p>
@@ -57,8 +57,8 @@ export function PimpinanExecutiveCards({ data }: PimpinanExecutiveCardsProps) {
 
         {/* Penyelesaian Rekomendasi (%) */}
         <div className="admin-metric rounded-2xl border border-line bg-surface p-4 shadow-card space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-2xs font-bold uppercase tracking-wider text-muted">
+          <div className="admin-metric-heading flex items-center justify-between">
+            <span className="admin-metric-label text-muted">
               Tingkat Penyelesaian Rekomendasi
             </span>
             <span className="grid size-8 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
@@ -66,7 +66,7 @@ export function PimpinanExecutiveCards({ data }: PimpinanExecutiveCardsProps) {
             </span>
           </div>
           <div className="flex items-baseline gap-2">
-            <p className="text-2xl font-extrabold text-emerald-800">
+            <p className="admin-metric-value text-2xl font-extrabold text-emerald-800">
               {formatPercent(kpi.persentase_selesai)}
             </p>
             <span className="text-2xs font-semibold text-muted">
@@ -83,15 +83,15 @@ export function PimpinanExecutiveCards({ data }: PimpinanExecutiveCardsProps) {
 
         {/* Surat Peringatan (SP) Diterbitkan */}
         <div className="admin-metric rounded-2xl border border-line bg-surface p-4 shadow-card space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-2xs font-bold uppercase tracking-wider text-muted">
+          <div className="admin-metric-heading flex items-center justify-between">
+            <span className="admin-metric-label text-muted">
               Surat Peringatan (TTE)
             </span>
             <span className="grid size-8 place-items-center rounded-xl bg-rose-50 text-rose-700">
               <Mail size={16} />
             </span>
           </div>
-          <p className="text-2xl font-extrabold text-ink">{spKpi.total_issued}</p>
+          <p className="admin-metric-value text-2xl font-extrabold text-ink">{spKpi.total_issued}</p>
           <div className="flex items-center gap-1.5 text-2xs">
             <span className="rounded bg-blue-50 px-1.5 py-0.5 font-bold text-blue-800">
               SP1: {spKpi.sp1_issued}
@@ -107,7 +107,7 @@ export function PimpinanExecutiveCards({ data }: PimpinanExecutiveCardsProps) {
       </div>
 
       {/* Banner Keuangan Rekomendasi Kas Daerah */}
-      <div className="rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-card space-y-3">
+      <div className="admin-financial rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-card space-y-3">
         <div className="flex items-center gap-2 border-b border-line/60 pb-3">
           <Coins size={18} className="text-purple-600" />
           <h4 className="text-xs font-bold uppercase tracking-wider text-ink">

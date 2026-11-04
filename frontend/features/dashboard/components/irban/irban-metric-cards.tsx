@@ -19,11 +19,11 @@ export function IrbanMetricCards({ metrics, spAlerts }: IrbanMetricCardsProps) {
       : 0;
 
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="admin-metric-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {/* Kartu 1: LHP */}
       <article className="admin-metric rounded-2xl border border-line bg-surface p-5 shadow-card transition-shadow hover:shadow-panel">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold tracking-wider uppercase text-muted">
+        <div className="admin-metric-heading flex items-center justify-between">
+          <span className="admin-metric-label text-muted">
             Laporan Hasil Pemeriksaan
           </span>
           <span className="grid size-10 place-items-center rounded-xl bg-brand-soft text-brand">
@@ -31,7 +31,7 @@ export function IrbanMetricCards({ metrics, spAlerts }: IrbanMetricCardsProps) {
           </span>
         </div>
         <div className="mt-4">
-          <p className="text-3xl font-bold tracking-tight text-ink">
+          <p className="admin-metric-value text-3xl font-bold tracking-tight text-ink">
             {metrics.total_lhp}
           </p>
           <div className="mt-2 flex items-center gap-3 text-xs text-muted">
@@ -53,8 +53,8 @@ export function IrbanMetricCards({ metrics, spAlerts }: IrbanMetricCardsProps) {
 
       {/* Kartu 2: Rekomendasi & Progres */}
       <article className="admin-metric rounded-2xl border border-line bg-surface p-5 shadow-card transition-shadow hover:shadow-panel">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold tracking-wider uppercase text-muted">
+        <div className="admin-metric-heading flex items-center justify-between">
+          <span className="admin-metric-label text-muted">
             Tindak Lanjut Rekomendasi
           </span>
           <span className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-600">
@@ -63,7 +63,7 @@ export function IrbanMetricCards({ metrics, spAlerts }: IrbanMetricCardsProps) {
         </div>
         <div className="mt-4">
           <div className="flex items-baseline justify-between">
-            <p className="text-3xl font-bold tracking-tight text-ink">
+            <p className="admin-metric-value text-3xl font-bold tracking-tight text-ink">
               {metrics.rekomendasi_selesai}{" "}
               <span className="text-base font-normal text-muted">
                 / {metrics.total_rekomendasi}
@@ -102,8 +102,8 @@ export function IrbanMetricCards({ metrics, spAlerts }: IrbanMetricCardsProps) {
 
       {/* Kartu 3: Surat Peringatan (SP Due) */}
       <article className="admin-metric rounded-2xl border border-line bg-surface p-5 shadow-card transition-shadow hover:shadow-panel">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold tracking-wider uppercase text-muted">
+        <div className="admin-metric-heading flex items-center justify-between">
+          <span className="admin-metric-label text-muted">
             Peringatan Jatuh Tempo
           </span>
           <span
@@ -118,7 +118,7 @@ export function IrbanMetricCards({ metrics, spAlerts }: IrbanMetricCardsProps) {
         </div>
         <div className="mt-4">
           <p
-            className={`text-3xl font-bold tracking-tight ${
+            className={`admin-metric-value text-3xl font-bold tracking-tight ${
               spAlerts.total_due > 0 ? "text-rose-600" : "text-ink"
             }`}
           >
@@ -162,8 +162,8 @@ export function IrbanMetricCards({ metrics, spAlerts }: IrbanMetricCardsProps) {
 
       {/* Kartu 4: Kerugian & Setoran Finansial (Opsional) */}
       <article className="admin-metric rounded-2xl border border-line bg-surface p-5 shadow-card transition-shadow hover:shadow-panel">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold tracking-wider uppercase text-muted">
+        <div className="admin-metric-heading flex items-center justify-between">
+          <span className="admin-metric-label text-muted">
             Pemulihan Kerugian Daerah
           </span>
           <span className="grid size-10 place-items-center rounded-xl bg-blue-50 text-brand">
@@ -171,7 +171,7 @@ export function IrbanMetricCards({ metrics, spAlerts }: IrbanMetricCardsProps) {
           </span>
         </div>
         <div className="mt-4">
-          <p className="text-xl font-bold tracking-tight text-ink sm:text-2xl">
+          <p className="admin-metric-value admin-metric-money text-xl font-bold tracking-tight text-ink sm:text-2xl">
             {formatRupiah(metrics.total_nilai_setor)}
           </p>
           <p className="mt-1 text-xs text-muted">
