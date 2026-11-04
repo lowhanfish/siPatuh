@@ -81,3 +81,28 @@
 .document-stack-middle { transform: translateZ(-15px) rotateY(-20deg) rotateX(9deg) rotateZ(-9deg); }
 .oversight-document { transform: translateZ(15px) rotateY(-20deg) rotateX(9deg) rotateZ(-9deg); }
 .scene-platform { transform: translateZ(-55px) rotateX(58deg); }
+
+/* Independent translate animation keeps pointer and scroll rotation intact. */
+@media (prefers-reduced-motion: no-preference) {
+  .cinematic-landing .scene-world { animation: oversight-hover 7s ease-in-out infinite; }
+  .cinematic-landing .scene-label-top { animation: oversight-label 6s ease-in-out infinite; }
+  .cinematic-landing .scene-label-bottom { animation: oversight-label 8s 1s ease-in-out infinite reverse; }
+  .cinematic-landing .scene-orbit-one { animation: oversight-orbit 20s ease-in-out infinite alternate; }
+  .cinematic-landing .scene-halo { animation: oversight-light 8s ease-in-out infinite; }
+  .cinematic-landing .oversight-scene { animation: oversight-arrive 1.2s .15s both; }
+}
+@keyframes oversight-hover { 0%, 100% { translate: 0 0; } 50% { translate: 0 -16px; } }
+@keyframes oversight-label { 0%, 100% { translate: 0 0; } 50% { translate: 0 -9px; } }
+@keyframes oversight-orbit { from { rotate: -8deg; } to { rotate: 8deg; } }
+@keyframes oversight-light { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+@keyframes oversight-arrive { from { opacity: 0; translate: 0 24px; } to { opacity: 1; translate: 0 0; } }
+@media (min-width: 1024px) {
+  .cinematic-landing { zoom: .9; }
+  .cinematic-landing > main { min-height: calc(100dvh / .9); }
+  .cinematic-landing .cinema-hero > div:last-child { min-height: calc(100dvh / .9 - 88px); }
+}
+@media (max-width: 640px) and (prefers-reduced-motion: no-preference) {
+  .cinematic-landing .scene-world { animation-name: oversight-mobile-hover; }
+}
+@keyframes oversight-mobile-hover { 0%, 100% { translate: 0 0; } 50% { translate: 0 -7px; } }
+@media print { .cinematic-landing { zoom: 1; } }
