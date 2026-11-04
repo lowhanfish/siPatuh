@@ -1,9 +1,9 @@
+import "@/features/landing/components/landing.css";
 import Image from "next/image";
 import { CinematicMotion } from "@/features/landing/components/cinematic-motion";
 import Link from "next/link";
 import {
   ArrowRight,
-  BadgeCheck,
   BarChart3,
   CheckCircle2,
   FolderClock,
@@ -40,7 +40,8 @@ const benefits = [
 export default function Home() {
   return (
     <CinematicMotion>
-    <main className="min-h-screen overflow-hidden bg-canvas">
+    <main className="min-h-screen overflow-clip bg-canvas">
+      <a className="landing-skip" href="#konten">Lewati navigasi</a>
       <header className="cinema-header relative z-30 border-b border-black/10 bg-[#fffaf0]/90 backdrop-blur-xl">
         <div className="mx-auto flex min-h-20 w-full max-w-[86rem] items-center justify-between gap-5 px-5 sm:px-8 lg:px-12">
           <Link className="group flex min-w-0 items-center gap-3" href="/">
@@ -52,11 +53,15 @@ export default function Home() {
               <span className="hidden truncate text-[11px] font-medium text-muted sm:block">Inspektorat Daerah Kabupaten Konawe Selatan</span>
             </span>
           </Link>
-          <SessionActions />
+          <nav aria-label="Navigasi utama" className="flex items-center gap-6">
+            <a className="landing-nav-link hidden text-xs font-medium md:block" href="#alur">Alur pengawasan</a>
+            <a className="landing-nav-link hidden text-xs font-medium md:block" href="#manfaat">Manfaat</a>
+            <SessionActions />
+          </nav>
         </div>
       </header>
 
-      <section className="cinema-hero hero-grid relative isolate border-b border-black/10">
+      <section id="konten" className="cinema-hero hero-grid relative isolate border-b border-black/10">
         <div aria-hidden className="cinema-grain" />
         <div aria-hidden className="cinema-orbit" />
         <div aria-hidden className="hero-orb hero-orb-one" />
@@ -90,28 +95,30 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="cinema-portrait relative mx-auto min-h-[31rem] w-full max-w-[34rem] sm:min-h-[38rem] lg:ml-auto">
-            <div aria-hidden className="absolute right-0 top-8 size-[78%] rounded-full bg-accent/35 blur-3xl" />
-            <div aria-hidden className="absolute right-[2%] top-[9%] size-20 rounded-full border-[14px] border-ink/8 sm:size-28" />
-
-            <div className="cinema-photo absolute right-0 top-0 w-[78%] max-w-[27rem]">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-[48%_48%_2.25rem_2.25rem] border-[7px] border-accent bg-white shadow-[0_28px_65px_rgb(67_45_0/0.18)] sm:border-[10px]">
-                <Image alt="Inspektur Daerah Kabupaten Konawe Selatan" className="object-cover object-[50%_24%]" fill priority sizes="(max-width: 1024px) 76vw, 34vw" src="/brand/inspektur.jpg" />
-                <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-ink/25 to-transparent" />
+          <div className="oversight-scene" aria-label="Ilustrasi tiga dimensi dokumen pengawasan terverifikasi" role="img">
+            <div className="scene-halo" aria-hidden="true" />
+            <div className="scene-orbit scene-orbit-one" aria-hidden="true" />
+            <div className="scene-orbit scene-orbit-two" aria-hidden="true" />
+            <div className="scene-world" aria-hidden="true">
+              <div className="scene-platform" />
+              <div className="document-stack document-stack-back" />
+              <div className="document-stack document-stack-middle" />
+              <div className="oversight-document">
+                <div className="document-heading"><span>SIPATUH</span><span>01 / LHP</span></div>
+                <span className="document-kicker">PENGAWASAN TERINTEGRASI</span>
+                <strong>Setiap temuan.<br />Satu kepastian.</strong>
+                <div className="document-rule" />
+                <div className="document-row"><span>Hasil pemeriksaan</span><CheckCircle2 size={15} /></div>
+                <div className="document-row"><span>Rekomendasi</span><CheckCircle2 size={15} /></div>
+                <div className="document-row"><span>Tindak lanjut</span><CheckCircle2 size={15} /></div>
+                <div className="document-track"><span /><span /><span /><span /><span /></div>
+                <div className="document-bottom"><span>TERCATAT. TERLACAK.</span><span>TERVERIFIKASI.</span></div>
               </div>
+              <div className="oversight-shield"><ShieldCheck strokeWidth={1} /></div>
             </div>
-
-            <div className="cinema-float absolute left-0 top-16 flex items-center gap-3 rounded-2xl border border-black/10 bg-white p-3 shadow-xl sm:top-24 sm:p-4">
-              <span className="grid size-10 place-items-center rounded-xl bg-brand-soft text-brand sm:size-11"><BadgeCheck size={21} /></span>
-              <span><span className="block text-xs font-bold text-ink">Terintegrasi</span><span className="block text-[11px] text-muted">Satu data pengawasan</span></span>
-            </div>
-
-            <div className="cinema-quote absolute bottom-0 left-0 w-[84%] max-w-[25rem] rounded-[1.6rem] bg-ink p-5 text-white shadow-[0_20px_45px_rgb(25_27_32/0.25)] sm:p-7">
-              <div aria-hidden className="absolute -right-3 top-8 size-6 rotate-45 bg-ink" />
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#ffd85d]">Komitmen pimpinan</p>
-              <p className="mt-3 text-base font-bold leading-snug sm:text-xl">Pengawasan yang responsif untuk tata kelola yang semakin baik.</p>
-              <p className="mt-3 text-[11px] leading-5 text-white/55 sm:text-xs">Inspektur Daerah Kabupaten Konawe Selatan</p>
-            </div>
+            <div className="scene-label scene-label-top"><span className="scene-status" /> Satu data pengawasan</div>
+            <div className="scene-label scene-label-bottom"><CheckCircle2 size={17} /><span>Akuntabilitas<br /><strong>di setiap langkah.</strong></span></div>
+            <span className="scene-caption">TERHUBUNG DARI TEMUAN HINGGA TUNTAS</span>
           </div>
         </div>
       </section>
@@ -138,8 +145,17 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="cinema-benefits bg-[#fffaf0]">
+      <section className="leadership-section">
+        <div className="leadership-inner cinema-reveal">
+          <div className="leadership-photo"><Image alt="Inspektur Daerah Kabupaten Konawe Selatan" src="/brand/inspektur.jpg" fill sizes="(max-width: 640px) 100px, 180px" className="object-cover object-[50%_24%]" /></div>
+          <div><p className="eyebrow eyebrow-light">Komitmen pimpinan</p><blockquote>“Pengawasan yang responsif untuk tata kelola yang semakin baik.”</blockquote><p className="leadership-credit">Inspektur Daerah Kabupaten Konawe Selatan</p></div>
+          <span className="leadership-mark" aria-hidden="true">“</span>
+        </div>
+      </section>
+
+      <section className="cinema-benefits bg-[#fffaf0]" id="manfaat">
         <div className="mx-auto w-full max-w-[86rem] px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
+          <div className="benefits-heading cinema-reveal"><p className="eyebrow eyebrow-light">Bekerja dengan kepastian</p><h2>Lebih terarah.<br />Lebih akuntabel.</h2><p>Informasi yang utuh membantu setiap peran mengambil langkah yang tepat.</p></div>
           <div className="grid gap-5 md:grid-cols-3">
             {benefits.map((item, index) => {
               const Icon = item.icon;
