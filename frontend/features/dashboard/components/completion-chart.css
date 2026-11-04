@@ -46,3 +46,15 @@
 @keyframes completion-arc-in { from { stroke-dasharray: 0 100; } }
 @keyframes completion-bar-in { from { transform: scaleY(0); opacity: .3; } to { transform: scaleY(1); opacity: 1; } }
 @keyframes completion-legend-in { from { opacity: 0; translate: 8px 0; } to { opacity: 1; translate: 0 0; } }
+
+/* Pause chart sequences until the actual graphic, rather than its heading, is visible. */
+@media (prefers-reduced-motion: no-preference) {
+  .completion-donut[data-scroll-state="waiting"],
+  .completion-donut[data-scroll-state="waiting"] .completion-arc,
+  .completion-bars[data-scroll-state="waiting"] .completion-bar,
+  .completion-legend[data-scroll-state="waiting"] > div { animation: none; }
+  .completion-donut[data-scroll-state="visible"] { animation-name: completion-ring-in; }
+  .completion-donut[data-scroll-state="visible"] .completion-arc { animation-name: completion-arc-in; }
+  .completion-bars[data-scroll-state="visible"] .completion-bar:not(.is-zero) { animation-name: completion-bar-in; }
+  .completion-legend[data-scroll-state="visible"] > div { animation-name: completion-legend-in; }
+}

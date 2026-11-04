@@ -1,6 +1,7 @@
 "use client";
 
 import "./admin-theme.css";
+import { AdminScrollMotion } from "./admin-scroll-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -249,7 +250,7 @@ export function AppShell({ children, user }: { children: ReactNode; user: AuthUs
         </header>
 
         <main className="admin-content px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
-          <div className="admin-page-transition" key={pathname}>{children}</div>
+          <AdminScrollMotion key={pathname}>{children}</AdminScrollMotion>
         </main>
       </div>
     </div>

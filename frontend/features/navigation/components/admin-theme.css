@@ -120,3 +120,11 @@
   .admin-workspace { padding: 0; }
   .admin-workspace *, .admin-workspace *::before, .admin-workspace *::after { animation: none !important; transition: none !important; }
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-workspace [data-scroll-state="waiting"] { opacity: 0; animation: none; }
+  .admin-workspace :is(section, article)[data-scroll-state="visible"]:not(.admin-metric) { animation: admin-panel-reveal .65s ease-out; }
+  .admin-workspace .admin-metric[data-scroll-state="visible"] { animation-name: admin-card-in; }
+}
+@keyframes admin-panel-reveal { from { opacity: 0; } to { opacity: 1; } }
+@media print { .admin-workspace [data-scroll-state] { opacity: 1 !important; } }
