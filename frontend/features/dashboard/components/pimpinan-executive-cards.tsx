@@ -22,7 +22,7 @@ export function PimpinanExecutiveCards({ data }: PimpinanExecutiveCardsProps) {
       {/* 5 Kartu Ringkasan Eksekutif Pimpinan */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total LHP */}
-        <div className="rounded-2xl border border-line bg-surface p-4 shadow-card space-y-2">
+        <div className="admin-metric rounded-2xl border border-line bg-surface p-4 shadow-card space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-2xs font-bold uppercase tracking-wider text-muted">
               Laporan Hasil Pemeriksaan (LHP)
@@ -40,7 +40,7 @@ export function PimpinanExecutiveCards({ data }: PimpinanExecutiveCardsProps) {
         </div>
 
         {/* Total Temuan Pengawasan */}
-        <div className="rounded-2xl border border-line bg-surface p-4 shadow-card space-y-2">
+        <div className="admin-metric rounded-2xl border border-line bg-surface p-4 shadow-card space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-2xs font-bold uppercase tracking-wider text-muted">
               Temuan Hasil Pemeriksaan
@@ -56,7 +56,7 @@ export function PimpinanExecutiveCards({ data }: PimpinanExecutiveCardsProps) {
         </div>
 
         {/* Penyelesaian Rekomendasi (%) */}
-        <div className="rounded-2xl border border-line bg-surface p-4 shadow-card space-y-2">
+        <div className="admin-metric rounded-2xl border border-line bg-surface p-4 shadow-card space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-2xs font-bold uppercase tracking-wider text-muted">
               Tingkat Penyelesaian Rekomendasi
@@ -82,7 +82,7 @@ export function PimpinanExecutiveCards({ data }: PimpinanExecutiveCardsProps) {
         </div>
 
         {/* Surat Peringatan (SP) Diterbitkan */}
-        <div className="rounded-2xl border border-line bg-surface p-4 shadow-card space-y-2">
+        <div className="admin-metric rounded-2xl border border-line bg-surface p-4 shadow-card space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-2xs font-bold uppercase tracking-wider text-muted">
               Surat Peringatan (TTE)

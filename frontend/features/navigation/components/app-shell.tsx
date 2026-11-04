@@ -178,14 +178,14 @@ export function AppShell({ children, user }: { children: ReactNode; user: AuthUs
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             aria-label="Tutup navigasi"
-            className="absolute inset-0 bg-slate-950/55 backdrop-blur-sm"
+            className="admin-mobile-backdrop absolute inset-0 bg-slate-950/55 backdrop-blur-sm"
             onClick={closeMobileNavigation}
             type="button"
           />
           <aside
             aria-label="Navigasi mobile"
             aria-modal="true"
-            className="admin-sidebar relative flex h-full w-[min(88vw,19rem)] flex-col bg-sidebar shadow-2xl"
+            className="admin-sidebar admin-mobile-drawer relative flex h-full w-[min(88vw,19rem)] flex-col bg-sidebar shadow-2xl"
             role="dialog"
           >
             <button
@@ -248,7 +248,9 @@ export function AppShell({ children, user }: { children: ReactNode; user: AuthUs
           </div>
         </header>
 
-        <main className="admin-content px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">{children}</main>
+        <main className="admin-content px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
+          <div className="admin-page-transition" key={pathname}>{children}</div>
+        </main>
       </div>
     </div>
   );

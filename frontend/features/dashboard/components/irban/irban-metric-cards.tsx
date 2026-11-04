@@ -21,7 +21,7 @@ export function IrbanMetricCards({ metrics, spAlerts }: IrbanMetricCardsProps) {
   return (
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
       {/* Kartu 1: LHP */}
-      <article className="rounded-2xl border border-line bg-surface p-5 shadow-card transition-shadow hover:shadow-panel">
+      <article className="admin-metric rounded-2xl border border-line bg-surface p-5 shadow-card transition-shadow hover:shadow-panel">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold tracking-wider uppercase text-muted">
             Laporan Hasil Pemeriksaan
@@ -52,7 +52,7 @@ export function IrbanMetricCards({ metrics, spAlerts }: IrbanMetricCardsProps) {
       </article>
 
       {/* Kartu 2: Rekomendasi & Progres */}
-      <article className="rounded-2xl border border-line bg-surface p-5 shadow-card transition-shadow hover:shadow-panel">
+      <article className="admin-metric rounded-2xl border border-line bg-surface p-5 shadow-card transition-shadow hover:shadow-panel">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold tracking-wider uppercase text-muted">
             Tindak Lanjut Rekomendasi
@@ -101,7 +101,7 @@ export function IrbanMetricCards({ metrics, spAlerts }: IrbanMetricCardsProps) {
       </article>
 
       {/* Kartu 3: Surat Peringatan (SP Due) */}
-      <article className="rounded-2xl border border-line bg-surface p-5 shadow-card transition-shadow hover:shadow-panel">
+      <article className="admin-metric rounded-2xl border border-line bg-surface p-5 shadow-card transition-shadow hover:shadow-panel">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold tracking-wider uppercase text-muted">
             Peringatan Jatuh Tempo
@@ -161,7 +161,7 @@ export function IrbanMetricCards({ metrics, spAlerts }: IrbanMetricCardsProps) {
       </article>
 
       {/* Kartu 4: Kerugian & Setoran Finansial (Opsional) */}
-      <article className="rounded-2xl border border-line bg-surface p-5 shadow-card transition-shadow hover:shadow-panel">
+      <article className="admin-metric rounded-2xl border border-line bg-surface p-5 shadow-card transition-shadow hover:shadow-panel">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold tracking-wider uppercase text-muted">
             Pemulihan Kerugian Daerah
