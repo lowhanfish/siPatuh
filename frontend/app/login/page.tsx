@@ -1,3 +1,4 @@
+import { ThemeToggle } from "@/features/theme/theme-toggle";
 import "@/features/auth/components/login.css";
 import { ArrowLeft, Check, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
@@ -28,7 +29,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <span className="login-brand-mark"><Image alt="Logo Inspektorat" className="h-9 w-auto" height={40} priority src="/brand/inspektorat.png" width={34} /></span>
           <span><strong>SIPATUH</strong><span>Inspektorat Konawe Selatan</span></span>
         </Link>
-        <Link className="login-back" href="/"><ArrowLeft aria-hidden size={15} /><span>Kembali ke beranda</span></Link>
+        <div className="login-header-actions"><ThemeToggle /><Link className="login-back" href="/"><ArrowLeft aria-hidden size={15} /><span>Kembali ke beranda</span></Link></div>
       </header>
 
       <div className="login-layout">

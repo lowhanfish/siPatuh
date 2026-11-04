@@ -1,5 +1,7 @@
 "use client";
 
+import { ThemeToggle } from "@/features/theme/theme-toggle";
+
 import "./admin-theme.css";
 import { AdminScrollMotion } from "./admin-scroll-motion";
 import Link from "next/link";
@@ -228,6 +230,7 @@ export function AppShell({ children, user }: { children: ReactNode; user: AuthUs
               {getRouteTitle(pathname)}
             </h1>
           </div>
+          <ThemeToggle />
           <div className="hidden items-center gap-3 sm:flex">
             <span aria-hidden className="admin-avatar grid size-10 place-items-center rounded-2xl text-sm font-bold">
               {user.nama.trim().split(/\s+/).slice(0, 2).map((name) => name[0]).join("")}

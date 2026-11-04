@@ -1,3 +1,4 @@
+import { ThemeToggle } from "@/features/theme/theme-toggle";
 import "@/features/landing/components/landing.css";
 import Image from "next/image";
 import { CinematicMotion } from "@/features/landing/components/cinematic-motion";
@@ -53,9 +54,10 @@ export default function Home() {
               <span className="hidden truncate text-[11px] font-medium text-muted sm:block">Inspektorat Daerah Kabupaten Konawe Selatan</span>
             </span>
           </Link>
-          <nav aria-label="Navigasi utama" className="flex items-center gap-6">
+          <nav aria-label="Navigasi utama" className="flex items-center gap-3 sm:gap-6">
             <a className="landing-nav-link hidden text-xs font-medium md:block" href="#alur">Alur pengawasan</a>
             <a className="landing-nav-link hidden text-xs font-medium md:block" href="#manfaat">Manfaat</a>
+            <ThemeToggle />
             <SessionActions />
           </nav>
         </div>

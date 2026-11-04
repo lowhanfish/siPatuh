@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import localFont from "next/font/local";
 import "./globals.css";
+import "./themes.css";
 import { AppProviders } from "./providers";
 
 const geistSans = localFont({
@@ -31,7 +33,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="id" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="id" data-theme="dark" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
+      <head>
+        <Script id="sipatuh-theme-init" strategy="beforeInteractive">{`try{document.documentElement.dataset.theme=localStorage.getItem('sipatuh-theme')==='light'?'light':'dark'}catch{}`}</Script>
+      </head>
       <body className="min-h-screen bg-canvas text-ink antialiased">
         <AppProviders>{children}</AppProviders>
       </body>
