@@ -110,6 +110,13 @@ export class LhpService {
       );
     }
 
+    if (file) {
+      this.filesService.validateUploadedFile(file, {
+        allowedMimeTypes: ['application/pdf'],
+        maxSizeBytes: 20 * 1024 * 1024,
+      });
+    }
+
     // 6. Buat record LHP dengan SNAPSHOT irban_id kepemilikan
     const lhp = await this.prisma.lhp.create({
       data: {
@@ -586,7 +593,7 @@ export class LhpService {
       );
     }
 
-    // Hitung rekomendasi yang belum selesai sebagai informasi transparan
+    // Penutupan hanya diizinkan setelah seluruh rekomendasi selesai.
     let pendingCount = 0;
     for (const temuan of lhp.temuans) {
       for (const rekom of temuan.rekomendasis) {
@@ -594,6 +601,12 @@ export class LhpService {
           pendingCount++;
         }
       }
+    }
+
+    if (pendingCount > 0) {
+      throw new BadRequestException(
+        `LHP belum dapat ditutup: ${pendingCount} rekomendasi belum selesai`,
+      );
     }
 
     const closed = await this.prisma.lhp.update({

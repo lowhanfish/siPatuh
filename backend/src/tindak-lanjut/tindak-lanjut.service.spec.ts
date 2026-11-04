@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';
 import { KategoriStatusEnum, RoleEnum } from '@prisma/client';
 import { TindakLanjutService } from './tindak-lanjut.service';
@@ -32,6 +33,7 @@ describe('TindakLanjutService', () => {
   };
 
   const mockFilesService = {
+    validateUploadedFile: jest.fn(),
     saveUploadedFile: jest.fn(),
     resolveSecurePath: jest.fn(),
   };
@@ -77,6 +79,32 @@ describe('TindakLanjutService', () => {
   });
 
   describe('create', () => {
+    it('does not save a follow-up when an attachment fails validation', async () => {
+      mockPrisma.rekomendasi.findUnique.mockResolvedValueOnce({
+        id: 'rec-1',
+        temuan: { lhp: { id: 'lhp-1', irban_id: 'irban-1', closed_at: null } },
+      });
+      mockFilesService.validateUploadedFile.mockImplementationOnce(() => {
+        throw new BadRequestException('Invalid file');
+      });
+      await expect(
+        service.create(
+          'rec-1',
+          { tanggal_diterima: '2026-11-04', uraian: 'QA' },
+          adminIrban1,
+          [
+            {
+              originalname: 'invalid.txt',
+              mimetype: 'text/plain',
+              size: 3,
+              buffer: Buffer.from('bad'),
+            },
+          ],
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrisma.tindakLanjut.create).not.toHaveBeenCalled();
+    });
+
     it('should reject if LHP belongs to another Irban', async () => {
       mockPrisma.rekomendasi.findUnique.mockResolvedValueOnce({
         id: 'rekom-1',

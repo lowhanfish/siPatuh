@@ -67,6 +67,18 @@ export class TindakLanjutService {
       );
     }
 
+    for (const file of files ?? []) {
+      this.filesService.validateUploadedFile(file, {
+        allowedMimeTypes: [
+          'application/pdf',
+          'image/jpeg',
+          'image/png',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ],
+        maxSizeBytes: 20 * 1024 * 1024,
+      });
+    }
+
     // Buat record tindak lanjut baru (histori tidak pernah ditimpa)
     const tl = await this.prisma.tindakLanjut.create({
       data: {

@@ -254,6 +254,25 @@ describe('LhpService', () => {
   });
 
   describe('closeLhp', () => {
+    it('rejects closure while any recommendation remains unresolved', async () => {
+      mockPrisma.lhp.findUnique.mockResolvedValueOnce({
+        id: 'lhp-1',
+        irban_id: 'irban-1',
+        closed_at: null,
+        temuans: [
+          {
+            rekomendasis: [
+              { status_rekomendasi: { kategori: 'BELUM_SELESAI' } },
+            ],
+          },
+        ],
+      });
+      await expect(service.closeLhp('lhp-1', adminIrban1)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockPrisma.lhp.update).not.toHaveBeenCalled();
+    });
+
     it('should close LHP successfully and record closed_at and closed_by', async () => {
       mockPrisma.lhp.findUnique.mockResolvedValueOnce({
         id: 'lhp-1',

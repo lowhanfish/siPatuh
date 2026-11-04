@@ -59,10 +59,11 @@ export class FilesService {
     return this.uploadsRoot;
   }
 
-  /**
-   * Menyimpan buffer file ke disk lokal dan mencatat metadata ke tabel Attachment
-   */
-  async saveUploadedFile(file: UploadedMulterFile, options: SaveFileOptions) {
+  /** Validate all uploads before a domain record or verification is committed. */
+  validateUploadedFile(
+    file: UploadedMulterFile,
+    options: Pick<SaveFileOptions, 'allowedMimeTypes' | 'maxSizeBytes'>,
+  ): void {
     if (!file || !file.buffer) {
       throw new BadRequestException('File tidak ditemukan dalam request');
     }
@@ -80,6 +81,13 @@ export class FilesService {
         `Tipe file ${file.mimetype} tidak diizinkan. Tipe yang diperbolehkan: ${allowedMimes.join(', ')}`,
       );
     }
+  }
+
+  /**
+   * Menyimpan buffer file ke disk lokal dan mencatat metadata ke tabel Attachment
+   */
+  async saveUploadedFile(file: UploadedMulterFile, options: SaveFileOptions) {
+    this.validateUploadedFile(file, options);
 
     // Target folder
     const targetDir = path.join(this.uploadsRoot, options.subDir);

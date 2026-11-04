@@ -7,12 +7,15 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { JwtPayload } from '../interfaces/jwt-payload.interface';
+import {
+  AuthenticatedUser,
+  JwtPayload,
+} from '../interfaces/jwt-payload.interface';
 
 // Extend Express Request interface to include authenticated user
 declare module 'express' {
   interface Request {
-    user?: JwtPayload;
+    user?: JwtPayload & AuthenticatedUser;
   }
 }
 
@@ -42,7 +45,8 @@ export class JwtAuthGuard implements CanActivate {
         throw new UnauthorizedException('Tipe token tidak valid');
       }
 
-      request.user = payload;
+      // Services use id; keep sub for token/profile consumers.
+      request.user = { ...payload, id: payload.sub };
       return true;
     } catch {
       throw new UnauthorizedException(

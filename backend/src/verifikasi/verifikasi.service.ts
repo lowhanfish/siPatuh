@@ -86,6 +86,18 @@ export class VerifikasiService {
       );
     }
 
+    if (file) {
+      this.filesService.validateUploadedFile(file, {
+        allowedMimeTypes: [
+          'application/pdf',
+          'image/jpeg',
+          'image/png',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ],
+        maxSizeBytes: 15 * 1024 * 1024,
+      });
+    }
+
     // Transaksi atomik: Simpan record verifikasi dan perbarui status rekomendasi terkait
     const [verifikasi, updatedRekomendasi] = await this.prisma.$transaction([
       this.prisma.verifikasi.create({
