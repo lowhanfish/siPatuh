@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CompletionChart } from "@/features/dashboard/components/completion-chart";
 import {
   AlertCircle,
   Calendar,
@@ -86,6 +87,7 @@ export default function DashboardPimpinanPage() {
         <div className="space-y-6">
           {/* Executive Macro KPI Cards */}
           <PimpinanExecutiveCards data={data} />
+          <CompletionChart metrics={data.summary_kpi} tahun={tahun} />
 
           {/* Grid: Komparasi Irban & Top 5 OPD Tertunggak */}
           <div className="grid gap-6 lg:grid-cols-2">

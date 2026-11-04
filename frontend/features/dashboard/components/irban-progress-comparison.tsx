@@ -50,7 +50,7 @@ export function IrbanProgressComparison({
 
                 <div className="flex items-baseline gap-2 self-start sm:self-auto">
                   <span className="text-lg font-extrabold text-emerald-800">
-                    {formatPercent(irb.persen_selesai)}%
+                    {formatPercent(irb.persen_selesai)}
                   </span>
                   <span className="text-2xs text-muted">selesai</span>
                 </div>

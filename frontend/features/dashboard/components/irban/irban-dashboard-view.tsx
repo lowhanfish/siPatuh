@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CompletionChart } from "../completion-chart";
 import { AlertCircle, Calendar, RefreshCw } from "lucide-react";
 import { useIrbanDashboard } from "@/features/dashboard/hooks/use-irban-dashboard";
 import { IrbanMetricCards } from "./irban-metric-cards";
@@ -114,6 +115,7 @@ export function IrbanDashboardView() {
         <div className="space-y-6">
           {/* 4 Kartu Metrik Utama */}
           <IrbanMetricCards metrics={data.metrics} spAlerts={data.sp_alerts} />
+          <CompletionChart metrics={data.metrics} tahun={selectedYear} />
 
           {/* Grid 2 Kolom: Status Dinamis & Peringatan SP Due */}
           <div className="grid gap-6 lg:grid-cols-2">

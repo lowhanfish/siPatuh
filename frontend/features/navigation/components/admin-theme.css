@@ -1,0 +1,70 @@
+/* The protected workspace shares the public site's midnight and warm-gold palette. */
+.admin-workspace {
+  --canvas: #080e17;
+  --surface: #131e2c;
+  --ink: #f3f0e8;
+  --muted: #acb8c8;
+  --line: #2c3a4b;
+  --line-strong: #8291a5;
+  --brand: #e8c48a;
+  --brand-strong: #f8dfba;
+  --brand-soft: #302d29;
+  --accent: #e8c48a;
+  --sidebar: #0b131f;
+  --success: #72d5b0;
+  --danger: #f59b9b;
+  --danger-soft: #3b242c;
+  --shadow-card: 0 8px 28px #0000001f, inset 0 1px 0 #ffffff04;
+  --shadow-panel: 0 24px 70px #0006;
+  --shadow-brand: 0 6px 22px #e8c48a15;
+  color: var(--ink);
+  color-scheme: dark;
+  background: radial-gradient(ellipse at 90% 0%, #23374b55, transparent 50%), var(--canvas);
+}
+.admin-workspace .admin-sidebar { background: linear-gradient(165deg, #101d2b, #080e17); border-right: 1px solid #ffffff12; }
+.admin-workspace .admin-brand { padding-block: 1.35rem; }
+.admin-workspace .admin-brand > span:first-child { background: #fff; }
+.admin-workspace nav p, .admin-workspace .admin-profile .text-amber-300 { color: #e8c48a; }
+.admin-workspace .admin-nav-link { color: #b9c5d4; border: 1px solid transparent; }
+.admin-workspace .admin-nav-link:hover { background: #ffffff07; border-color: #ffffff12; }
+.admin-workspace .admin-nav-link[aria-current="page"] { color: #e8c48a; background: linear-gradient(110deg, #e8c48a22, #e8c48a09); border-color: #e8c48a35; box-shadow: inset 3px 0 #e8c48a; }
+.admin-workspace .admin-profile { background: #ffffff05; }
+.admin-workspace .admin-topbar { min-height: 4.25rem; background: #0c1521ed; border-color: #ffffff12; }
+.admin-workspace .admin-avatar { color: #e8c48a; border: 1px solid #e8c48a30; background: linear-gradient(135deg, #e8c48a20, #e8c48a08); }
+.admin-workspace .admin-content { max-width: 120rem; margin-inline: auto; }
+.admin-workspace .admin-content :is(.rounded-2xl, .rounded-3xl).bg-surface { background: linear-gradient(125deg, #182535, #111c29); border-color: #ffffff12; }
+.admin-workspace .button-primary { display: inline-flex; color: #141923; background: #e8c48a; box-shadow: 0 5px 20px #e8c48a12; }
+.admin-workspace .button-primary:hover { background: #f8dfba; }
+.admin-workspace .form-input { background: #0d1723; }
+.admin-workspace .form-input:focus { box-shadow: 0 0 0 3px #e8c48a20; }
+.admin-workspace :is(button, a, input, select, textarea):focus-visible { outline: 2px solid #e8c48a; outline-offset: 3px; }
+.admin-workspace :is(.status-badge, .info-chip) { background: #ffffff07; }
+.admin-workspace table thead { background: #0d1723; }
+.admin-workspace table tbody tr:hover { background: #ffffff04; }
+.admin-workspace select option { background: #131e2c; color: #f3f0e8; }
+/* Preserve status meaning while making existing semantic badges readable on dark surfaces. */
+.admin-workspace :is(.bg-emerald-50, .bg-emerald-100, .bg-green-50, .bg-green-100) { background-color: #17382f; }
+.admin-workspace :is(.text-emerald-600, .text-emerald-700, .text-emerald-800, .text-emerald-900, .text-green-700, .text-green-800) { color: #87dfba; }
+.admin-workspace :is(.bg-rose-50, .bg-rose-100, .bg-red-50, .bg-red-100) { background-color: #3c242c; }
+.admin-workspace :is(.text-rose-600, .text-rose-700, .text-rose-800, .text-rose-900, .text-red-700, .text-red-800) { color: #ffadb7; }
+.admin-workspace :is(.bg-amber-50, .bg-amber-100, .bg-yellow-50, .bg-yellow-100, .bg-orange-50, .bg-orange-100) { background-color: #382f22; }
+.admin-workspace :is(.text-amber-600, .text-amber-700, .text-amber-800, .text-amber-900, .text-yellow-800, .text-orange-700, .text-orange-800) { color: #edcd98; }
+.admin-workspace :is(.bg-blue-50, .bg-blue-100, .bg-indigo-50, .bg-indigo-100, .bg-purple-50, .bg-purple-100) { background-color: #233247; }
+.admin-workspace :is(.text-blue-600, .text-blue-700, .text-blue-800, .text-blue-900, .text-indigo-700, .text-indigo-800, .text-purple-700, .text-purple-800) { color: #b0caf0; }
+.admin-workspace :is(.bg-slate-50, .bg-slate-100, .bg-slate-200, .bg-gray-50, .bg-gray-100) { background-color: #243142; }
+.admin-workspace :is(.text-slate-600, .text-slate-700, .text-slate-800, .text-gray-600, .text-gray-700, .text-gray-800) { color: #c1ccdb; }
+.admin-workspace :is(.border-emerald-200, .border-rose-200, .border-red-200, .border-amber-200, .border-blue-200, .border-purple-200, .border-slate-200) { border-color: #ffffff20; }
+/* Document previews retain a paper surface for their printable content. */
+.admin-workspace .bg-white.text-ink { --ink: #191b20; --muted: #68665f; color: #191b20; color-scheme: light; }
+@media (min-width: 1024px) {
+  .admin-workspace { zoom: .9; min-height: calc(100dvh / .9); grid-template-columns: 16rem minmax(0, 1fr); }
+  .admin-workspace > .admin-sidebar { height: calc(100dvh / .9); }
+  .admin-workspace .admin-content { padding: 1.5rem 1.75rem; }
+}
+.admin-workspace :is([class~="bg-emerald-50/40"], [class~="bg-emerald-50/50"], [class~="bg-emerald-50/60"]) { background-color: #17382f; }
+.admin-workspace :is([class~="bg-rose-50/40"], [class~="bg-rose-50/50"]) { background-color: #3c242c; }
+.admin-workspace :is([class~="bg-amber-50/40"], [class~="bg-amber-50/50"], [class~="bg-amber-50/60"]) { background-color: #382f22; }
+.admin-workspace :is([class~="bg-blue-50/50"], [class~="bg-blue-50/70"]) { background-color: #233247; }
+.admin-workspace :is([class~="bg-slate-50/60"]) { background-color: #1b293a; }
+.admin-workspace .text-purple-600 { color: #d4b5ed; }
+@media print { .admin-workspace { zoom: 1; } }

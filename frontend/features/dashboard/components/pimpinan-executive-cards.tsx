@@ -67,7 +67,7 @@ export function PimpinanExecutiveCards({ data }: PimpinanExecutiveCardsProps) {
           </div>
           <div className="flex items-baseline gap-2">
             <p className="text-2xl font-extrabold text-emerald-800">
-              {formatPercent(kpi.persentase_selesai)}%
+              {formatPercent(kpi.persentase_selesai)}
             </p>
             <span className="text-2xs font-semibold text-muted">
               ({kpi.rekomendasi_selesai}/{kpi.total_rekomendasi})

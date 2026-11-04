@@ -1,5 +1,6 @@
 "use client";
 
+import "./admin-theme.css";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -168,7 +169,7 @@ export function AppShell({ children, user }: { children: ReactNode; user: AuthUs
   }
 
   return (
-    <div className={`min-h-screen bg-canvas lg:grid lg:grid-cols-[17.5rem_minmax(0,1fr)] ${user.role !== "BUPATI" ? "admin-glass" : ""}`}>
+    <div className="admin-workspace min-h-screen bg-canvas lg:grid lg:grid-cols-[17.5rem_minmax(0,1fr)]">
       <aside className="admin-sidebar hidden h-screen flex-col bg-sidebar lg:sticky lg:top-0 lg:flex">
         <SidebarContent pathname={pathname} user={user} />
       </aside>

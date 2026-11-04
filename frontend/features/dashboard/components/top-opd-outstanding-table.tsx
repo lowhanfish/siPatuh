@@ -84,7 +84,7 @@ export function TopOpdOutstandingTable({
                     <div className="space-y-1 w-32">
                       <div className="flex items-center justify-between text-2xs">
                         <span className="font-bold text-ink">
-                          {formatPercent(opd.persen_selesai)}%
+                          {formatPercent(opd.persen_selesai)}
                         </span>
                         <span className="text-[10px] text-muted">
                           ({opd.selesai}/{opd.total_rekomendasi})
