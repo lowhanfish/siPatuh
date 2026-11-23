@@ -45,6 +45,9 @@ export type SuratPeringatanItem = {
   signed_at?: string | null;
   signed_by?: string | null;
   signed_path?: string | null;
+  tte_status?: "sending" | "succeeded" | "failed" | "unknown" | null;
+  tte_request_id?: string | null;
+  tte_error_code?: string | null;
   items_count: number;
   created_at: string;
   updated_at: string;

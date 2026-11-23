@@ -39,9 +39,13 @@ export function TteSignModal({ isOpen, onClose, surat }: TteSignModalProps) {
     const nextErrors: Record<string, string> = {};
     if (!nik.trim()) {
       nextErrors.nik = "NIK penandatangan TTE wajib diisi";
+    } else if (!/^\d{16}$/.test(nik.trim())) {
+      nextErrors.nik = "NIK penandatangan harus terdiri dari 16 digit angka";
     }
     if (!passphrase) {
       nextErrors.passphrase = "Passphrase TTE wajib diisi";
+    } else if (passphrase.length > 256) {
+      nextErrors.passphrase = "Passphrase maksimal 256 karakter";
     }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -171,6 +175,15 @@ export function TteSignModal({ isOpen, onClose, surat }: TteSignModalProps) {
                 </div>
               </div>
 
+              {(surat.tte_status === "unknown" || surat.tte_status === "sending") && (
+                <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-3.5 text-2xs text-blue-900 flex items-start gap-2.5">
+                  <ShieldAlert size={16} className="shrink-0 text-blue-700 mt-0.5" />
+                  <p className="leading-relaxed">
+                    Percobaan tanda tangan sebelumnya belum memiliki hasil pasti. Menekan tombol di bawah akan memeriksa status transaksi tersebut terlebih dahulu dan tidak membuat tanda tangan ganda.
+                  </p>
+                </div>
+              )}
+
               {/* Warning Immutability */}
               <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3.5 text-2xs text-amber-900 flex items-start gap-2.5">
                 <ShieldAlert size={16} className="shrink-0 text-amber-700 mt-0.5" />
@@ -191,10 +204,12 @@ export function TteSignModal({ isOpen, onClose, surat }: TteSignModalProps) {
                 <input
                   id="tte-nik-input"
                   type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
                   maxLength={16}
                   value={nik}
                   onChange={(e) => {
-                    setNik(e.target.value);
+                    setNik(e.target.value.replace(/\D/g, "").slice(0, 16));
                     if (errors.nik) setErrors((prev) => ({ ...prev, nik: "" }));
                   }}
                   placeholder="Masukkan 16 digit NIK pejabat penandatangan"

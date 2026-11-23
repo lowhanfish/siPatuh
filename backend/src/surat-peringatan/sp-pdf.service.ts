@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import PDFDocument from 'pdfkit';
 
@@ -32,7 +32,7 @@ export class SpPdfGeneratorService {
 
   constructor(private readonly configService: ConfigService) {
     this.signatureTag =
-      this.configService.get<string>('TTE_SIGNATURE_TAG') || '#tagTTD#';
+      this.configService.get<string>('TTE_SIGNATURE_TAG') || '$';
   }
 
   getSignatureTag(): string {
@@ -94,10 +94,30 @@ export class SpPdfGeneratorService {
       .trim();
   }
 
+  private assertNoSignatureTagInContent(payload: SpPdfRenderPayload): void {
+    const values: string[] = [];
+    const collect = (value: unknown) => {
+      if (typeof value === 'string') values.push(value);
+      else if (Array.isArray(value)) value.forEach(collect);
+      else if (value && typeof value === 'object' && !(value instanceof Date))
+        Object.values(value).forEach(collect);
+    };
+    collect(payload);
+    if (values.some((v) => v.includes(this.signatureTag))) {
+      throw new BadRequestException(
+        `Isi surat mengandung karakter "${this.signatureTag}" yang dipakai sebagai penanda posisi TTE. Hapus karakter tersebut dari nomor, template, atau uraian surat.`,
+      );
+    }
+  }
+
   /**
    * Generate unsigned PDF Buffer dengan anchor TTE
    */
   async generateDraftPdf(payload: SpPdfRenderPayload): Promise<Buffer> {
+    // Gateway TTE mencari marker di seluruh isi PDF, jadi marker tidak boleh
+    // muncul di teks lain selain posisi tanda tangan.
+    this.assertNoSignatureTagInContent(payload);
+
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({
@@ -352,7 +372,7 @@ export class SpPdfGeneratorService {
           });
         doc.moveDown(1);
 
-        // SISIPKAN ANCHOR/TAG TTE DARI CONFIG (misal #tagTTD#)
+        // SISIPKAN ANCHOR/TAG TTE DARI CONFIG (1 karakter, default $)
         // Diletakkan dengan spasi vertikal agar visual stamp TTE menutup tag ini
         const anchorY = doc.y;
         doc

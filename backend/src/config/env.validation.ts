@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   MinLength,
   validateSync,
 } from 'class-validator';
@@ -66,23 +67,38 @@ export class EnvironmentVariables {
 
   @IsString()
   @IsOptional()
-  TTE_API_URL?: string;
+  TTE_GATEWAY_URL?: string;
 
   @IsString()
   @IsOptional()
-  TTE_API_TOKEN?: string;
-
-  @IsNumber()
-  @IsOptional()
-  TTE_REQUEST_TIMEOUT_MS: number = 30000;
-
-  @IsNumber()
-  @IsOptional()
-  TTE_MAX_PDF_BYTES: number = 7000000;
+  TTE_CLIENT_ID?: string;
 
   @IsString()
   @IsOptional()
-  TTE_SIGNATURE_TAG: string = '#tagTTD#';
+  TTE_CLIENT_SECRET?: string;
+
+  @IsString()
+  @IsOptional()
+  TTE_SCOPE?: string;
+
+  @IsString()
+  @IsOptional()
+  TTE_ORIGIN?: string;
+
+  @IsNumber()
+  @IsOptional()
+  TTE_REQUEST_TIMEOUT_MS: number = 90000;
+
+  @IsNumber()
+  @IsOptional()
+  TTE_MAX_PDF_BYTES: number = 26214400;
+
+  @IsString()
+  @IsOptional()
+  @Matches(/^[^\s\p{Cc}]$/u, {
+    message: 'TTE_SIGNATURE_TAG harus tepat 1 karakter terlihat (mis. $)',
+  })
+  TTE_SIGNATURE_TAG: string = '$';
 }
 
 export function validateConfig(

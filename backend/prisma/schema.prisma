@@ -274,6 +274,12 @@ model SuratPeringatan {
   signed_path          String?
   signed_at            DateTime?
   signed_by            String?
+  // Transaksi gateway TTE Esign Konsel (lihat src/external/tte/tte.client.ts)
+  tte_idempotency_key  String?     @db.VarChar(128)
+  tte_request_id       String?     @unique @db.VarChar(64)
+  tte_status           String?     @db.VarChar(20) // sending | succeeded | failed | unknown
+  tte_error_code       String?     @db.VarChar(100)
+  tte_attempted_at     DateTime?
   created_at           DateTime    @default(now())
   updated_at           DateTime    @updatedAt
 

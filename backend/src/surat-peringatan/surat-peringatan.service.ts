@@ -2,9 +2,19 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  BadGatewayException,
   ConflictException,
+  GatewayTimeoutException,
+  HttpException,
+  ServiceUnavailableException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
-import { KategoriStatusEnum, Prisma, SpLevelEnum } from '@prisma/client';
+import {
+  KategoriStatusEnum,
+  Prisma,
+  SpLevelEnum,
+  type SuratPeringatan,
+} from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -16,7 +26,11 @@ import { AuditService } from '../audit/audit.service';
 import { FilesService } from '../files/files.service';
 import { SpDueEngineService } from './sp-due.service';
 import { SpPdfGeneratorService } from './sp-pdf.service';
-import { TteClient } from '../external/tte/tte.client';
+import {
+  TteClient,
+  TteConfigError,
+  TteGatewayError,
+} from '../external/tte/tte.client';
 import {
   CreateSuratPeringatanDto,
   QuerySuratPeringatanDto,
@@ -24,6 +38,9 @@ import {
   UpdateSuratPeringatanDto,
 } from './dto/create-surat-peringatan.dto';
 import type { AuthenticatedUser } from '../auth/interfaces/jwt-payload.interface';
+
+/** Status `sending` tanpa kabar selama ini dianggap macet dan boleh diklaim ulang. */
+const TTE_SENDING_STALE_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class SuratPeringatanService {
@@ -368,6 +385,7 @@ export class SuratPeringatanService {
         'Surat Peringatan ini telah ditandatangani secara digital (TTE) dan berstatus immutable. PDF draft tidak dapat diubah.',
       );
     }
+    this.assertNoPendingTte(sp);
 
     // Ambil template aktif
     const activeTpl = await this.prisma.suratTemplate.findFirst({
@@ -495,6 +513,7 @@ export class SuratPeringatanService {
         'Surat Peringatan yang telah ditandatangani (TTE) bersifat permanen (immutable) dan tidak dapat diubah.',
       );
     }
+    this.assertNoPendingTte(sp);
 
     if (dto.nomor_surat && dto.nomor_surat.trim() !== sp.nomor_surat) {
       const existingNomor = await this.prisma.suratPeringatan.findUnique({
@@ -559,6 +578,7 @@ export class SuratPeringatanService {
         'Surat Peringatan yang telah ditandatangani secara digital (TTE) dilarang dihapus (immutable legal document).',
       );
     }
+    this.assertNoPendingTte(sp);
 
     // Hapus fisik draft jika ada
     if (sp.draft_path) {
@@ -746,7 +766,16 @@ export class SuratPeringatanService {
   }
 
   /**
-   * Menandatangani Surat Peringatan secara elektronik melalui integrasi TTE BSrE
+   * Menandatangani Surat Peringatan secara elektronik melalui API Gateway
+   * Esign Konsel (TTE BSrE).
+   *
+   * Aturan idempotensi mengikuti panduan gateway:
+   * - Satu operasi = satu Idempotency-Key yang disimpan SEBELUM request dikirim.
+   * - Timeout / status `unknown` tidak memicu tanda tangan ulang dengan key baru.
+   *   Percobaan berikutnya memeriksa status (jika ada request_id) atau mengirim
+   *   ulang dengan key dan isi yang sama.
+   * - Status `failed` boleh dicoba lagi dengan key baru setelah penyebab
+   *   diperbaiki (mis. passphrase diketik ulang).
    */
   async signTte(
     id: string,
@@ -777,7 +806,7 @@ export class SuratPeringatanService {
       );
     }
 
-    // 2. Lock concurrency in-memory untuk mencegah double-click signing
+    // 2. Lock in-memory untuk klik ganda pada instance yang sama
     if (this.signingLocks.has(id)) {
       throw new ConflictException(
         'Proses penandatanganan TTE sedang berlangsung untuk surat ini. Harap tunggu.',
@@ -786,8 +815,30 @@ export class SuratPeringatanService {
 
     this.signingLocks.add(id);
 
+    let idempotencyKey: string | null = null;
     try {
-      // 3. Muat berkas draft PDF fisik
+      // 3. Transaksi sebelumnya belum tuntas: periksa status, jangan tanda tangan ulang
+      if (sp.tte_request_id && sp.tte_status && sp.tte_status !== 'failed') {
+        const resumed = await this.resumeTteTransaction(
+          sp,
+          sp.tte_request_id,
+          currentUser,
+        );
+        if (resumed) return resumed;
+        // Status akhirnya `failed`: lanjut ke percobaan baru dengan key baru.
+        sp.tte_request_id = null;
+        sp.tte_status = 'failed';
+      }
+
+      // 4. Tentukan Idempotency-Key. Pakai ulang key lama hanya bila hasil
+      //    percobaan sebelumnya belum pasti dan belum ada request_id.
+      const reuseKey =
+        Boolean(sp.tte_idempotency_key) &&
+        !sp.tte_request_id &&
+        (sp.tte_status === 'unknown' || sp.tte_status === 'sending');
+      idempotencyKey = reuseKey ? sp.tte_idempotency_key! : crypto.randomUUID();
+
+      // 5. Muat berkas draft PDF fisik
       let draftPath = sp.draft_path;
       let fullDraftPath = draftPath
         ? path.join(this.filesService.getUploadsRoot(), draftPath)
@@ -804,67 +855,57 @@ export class SuratPeringatanService {
 
       const draftBuffer = fs.readFileSync(fullDraftPath);
 
-      // 4. Kirim ke wrapper TTE (tanpa mencatat password/passphrase/token ke log)
-      const tteResult = await this.tteClient.signPdf({
-        judul: `Surat Peringatan ${sp.level}`,
-        nomor: sp.nomor_surat,
-        nik: dto.nik.trim(),
-        passphrase: dto.passphrase,
-        pdfBuffer: draftBuffer,
-      });
-
-      // 5. Simpan berkas signed PDF fisik ke uploads/surat-peringatan/signed/
-      const signedFileName = `${crypto.randomUUID()}.pdf`;
-      const signedRelativePath = `surat-peringatan/signed/${signedFileName}`;
-      const signedAbsolutePath = path.join(this.getSignedDir(), signedFileName);
-      fs.writeFileSync(signedAbsolutePath, tteResult.signedPdfBuffer);
-
-      // 6. Update database record secara atomic
-      const signedAt = new Date();
-      const updatedSp = await this.prisma.suratPeringatan.update({
-        where: { id },
+      // 6. Klaim operasi di database (aman lintas instance) dan simpan key
+      //    SEBELUM request dikirim ke gateway.
+      const staleBefore = new Date(Date.now() - TTE_SENDING_STALE_MS);
+      const claimed = await this.prisma.suratPeringatan.updateMany({
+        where: {
+          id,
+          signed_at: null,
+          OR: [
+            { tte_status: null },
+            { tte_status: { not: 'sending' } },
+            { tte_attempted_at: null },
+            { tte_attempted_at: { lt: staleBefore } },
+          ],
+        },
         data: {
-          signed_at: signedAt,
-          signed_by: currentUser.id,
-          signed_path: signedRelativePath,
-        },
-        include: {
-          items: true,
-          lhp: {
-            select: {
-              id: true,
-              nomor_lhp: true,
-              irban_id: true,
-              simpeg_unit_kerja_id: true,
-            },
-          },
+          tte_status: 'sending',
+          tte_idempotency_key: idempotencyKey,
+          tte_request_id: null,
+          tte_error_code: null,
+          tte_attempted_at: new Date(),
         },
       });
+      if (claimed.count === 0) {
+        throw new ConflictException(
+          'Proses penandatanganan TTE sedang berlangsung untuk surat ini. Harap tunggu.',
+        );
+      }
 
-      // 7. Audit Log aman (BEBAS SECRET)
-      await this.auditService.log({
-        actor_id: currentUser.id,
-        actor_role: currentUser.role,
-        action: 'TTE_SIGN_SUCCESS',
-        entity: 'SuratPeringatan',
-        entity_id: id,
-        metadata: {
-          nomor_surat: sp.nomor_surat,
-          level: sp.level,
-          signed_at: signedAt.toISOString(),
-          signer_id: currentUser.id,
-        },
-      });
+      // 7. Kirim ke gateway TTE (passphrase/token tidak pernah dicatat ke log)
+      let tteResult: Awaited<ReturnType<TteClient['signPdf']>>;
+      try {
+        tteResult = await this.tteClient.signPdf({
+          nomor: sp.nomor_surat,
+          nik: dto.nik.trim(),
+          passphrase: dto.passphrase,
+          idempotencyKey,
+          pdfBuffer: draftBuffer,
+          filename: `${sp.level}_${sp.nomor_surat.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`,
+        });
+      } catch (error) {
+        await this.recordTteFailure(id, error, idempotencyKey);
+        throw this.toTteHttpException(error);
+      }
 
-      const opd = await this.simpegAdapter.findUnitKerjaById(
-        sp.simpeg_unit_kerja_id,
+      // 8. Simpan PDF hasil dan tandai surat signed
+      return await this.finalizeSignedSp(
+        sp,
+        tteResult.signedPdfBuffer,
+        tteResult.requestId,
+        currentUser,
       );
-
-      return {
-        ...updatedSp,
-        unit_kerja_nama: opd?.unit_kerja || 'Perangkat Daerah',
-        status: 'SIGNED',
-      };
     } catch (error) {
       await this.auditService.log({
         actor_id: currentUser.id,
@@ -874,6 +915,13 @@ export class SuratPeringatanService {
         entity_id: id,
         metadata: {
           nomor_surat: sp.nomor_surat,
+          idempotency_key: idempotencyKey,
+          tte_code:
+            error instanceof TteGatewayError ? error.details.code : undefined,
+          tte_request_id:
+            error instanceof TteGatewayError
+              ? error.details.requestId
+              : undefined,
           error_message:
             error instanceof Error ? error.message : 'Unknown error',
         },
@@ -881,6 +929,227 @@ export class SuratPeringatanService {
       throw error;
     } finally {
       this.signingLocks.delete(id);
+    }
+  }
+
+  /**
+   * Periksa transaksi gateway yang belum tuntas. Mengembalikan surat signed bila
+   * transaksi ternyata berhasil, `null` bila gagal (boleh dicoba lagi), atau
+   * melempar ConflictException bila masih diproses / belum pasti.
+   */
+  private async resumeTteTransaction(
+    sp: SuratPeringatan,
+    requestId: string,
+    currentUser: AuthenticatedUser,
+  ) {
+    let status: Awaited<ReturnType<TteClient['getStatus']>>;
+    try {
+      status = await this.tteClient.getStatus(requestId);
+    } catch (error) {
+      throw this.toTteHttpException(error);
+    }
+
+    if (status.status === 'succeeded') {
+      let signedBuffer: Buffer;
+      try {
+        signedBuffer = await this.tteClient.downloadDocument(requestId);
+      } catch (error) {
+        if (error instanceof TteGatewayError && error.httpStatus === 410) {
+          throw new ConflictException(
+            `Dokumen sudah ditandatangani di gateway TTE (ID transaksi ${requestId}), tetapi masa simpan PDF hasil telah berakhir. Hubungi admin gateway TTE; jangan menandatangani ulang.`,
+          );
+        }
+        throw this.toTteHttpException(error);
+      }
+      return this.finalizeSignedSp(sp, signedBuffer, requestId, currentUser);
+    }
+
+    if (status.status === 'failed') {
+      await this.prisma.suratPeringatan.update({
+        where: { id: sp.id },
+        data: {
+          tte_status: 'failed',
+          tte_error_code: status.error_code ?? null,
+          tte_idempotency_key: null,
+        },
+      });
+      return null;
+    }
+
+    await this.prisma.suratPeringatan.update({
+      where: { id: sp.id },
+      data: { tte_status: status.status },
+    });
+
+    if (status.status === 'sending') {
+      throw new ConflictException(
+        `Penandatanganan masih diproses gateway TTE (ID transaksi ${requestId}). Coba periksa lagi beberapa saat lagi.`,
+      );
+    }
+    throw new ConflictException(
+      `Hasil penandatanganan belum pasti (ID transaksi ${requestId}). Minta admin gateway TTE memeriksa transaksi ini sebelum menandatangani ulang.`,
+    );
+  }
+
+  private async finalizeSignedSp(
+    sp: SuratPeringatan,
+    signedPdfBuffer: Buffer,
+    requestId: string | null,
+    currentUser: AuthenticatedUser,
+  ) {
+    // Simpan berkas signed PDF fisik ke uploads/surat-peringatan/signed/
+    const signedFileName = `${crypto.randomUUID()}.pdf`;
+    const signedRelativePath = `surat-peringatan/signed/${signedFileName}`;
+    const signedAbsolutePath = path.join(this.getSignedDir(), signedFileName);
+    fs.writeFileSync(signedAbsolutePath, signedPdfBuffer);
+
+    const signedAt = new Date();
+    const updatedSp = await this.prisma.suratPeringatan.update({
+      where: { id: sp.id },
+      data: {
+        signed_at: signedAt,
+        signed_by: currentUser.id,
+        signed_path: signedRelativePath,
+        tte_status: 'succeeded',
+        tte_request_id: requestId ?? sp.tte_request_id,
+        tte_error_code: null,
+      },
+      include: {
+        items: true,
+        lhp: {
+          select: {
+            id: true,
+            nomor_lhp: true,
+            irban_id: true,
+            simpeg_unit_kerja_id: true,
+          },
+        },
+      },
+    });
+
+    // Audit Log aman (BEBAS SECRET)
+    await this.auditService.log({
+      actor_id: currentUser.id,
+      actor_role: currentUser.role,
+      action: 'TTE_SIGN_SUCCESS',
+      entity: 'SuratPeringatan',
+      entity_id: sp.id,
+      metadata: {
+        nomor_surat: sp.nomor_surat,
+        level: sp.level,
+        signed_at: signedAt.toISOString(),
+        signer_id: currentUser.id,
+        tte_request_id: requestId,
+      },
+    });
+
+    const opd = await this.simpegAdapter.findUnitKerjaById(
+      sp.simpeg_unit_kerja_id,
+    );
+
+    return {
+      ...updatedSp,
+      unit_kerja_nama: opd?.unit_kerja || 'Perangkat Daerah',
+      status: 'SIGNED',
+    };
+  }
+
+  /** Catat hasil percobaan yang tidak berhasil tanpa menyimpan secret. */
+  private async recordTteFailure(
+    id: string,
+    error: unknown,
+    idempotencyKey: string,
+  ) {
+    let data: Prisma.SuratPeringatanUpdateInput;
+
+    if (error instanceof TteConfigError) {
+      // Tidak ada request yang dikirim.
+      data = { tte_status: null, tte_idempotency_key: null };
+    } else if (error instanceof TteGatewayError) {
+      const { code, requestId, txStatus } = error.details;
+      const uncertain =
+        error.isTransportFailure ||
+        error.httpStatus === 409 ||
+        (error.httpStatus !== null && error.httpStatus >= 500) ||
+        txStatus === 'unknown' ||
+        txStatus === 'sending';
+
+      data = uncertain
+        ? {
+            tte_status: txStatus === 'sending' ? 'sending' : 'unknown',
+            tte_idempotency_key: idempotencyKey,
+            tte_request_id: requestId ?? null,
+            tte_error_code: code ?? null,
+          }
+        : {
+            tte_status: 'failed',
+            tte_idempotency_key: null,
+            tte_request_id: requestId ?? null,
+            tte_error_code: code ?? null,
+          };
+    } else {
+      // Kesalahan tak terduga: anggap belum pasti, pertahankan key.
+      data = { tte_status: 'unknown', tte_idempotency_key: idempotencyKey };
+    }
+
+    try {
+      await this.prisma.suratPeringatan.update({ where: { id }, data });
+    } catch {
+      // Jangan menutupi error asli dari gateway.
+    }
+  }
+
+  private toTteHttpException(error: unknown): Error {
+    if (error instanceof HttpException) return error;
+    if (error instanceof TteConfigError) {
+      return new BadRequestException(error.message);
+    }
+    if (!(error instanceof TteGatewayError)) {
+      return new BadGatewayException(
+        'Terjadi kesalahan saat memproses tanda tangan elektronik',
+      );
+    }
+
+    const ref = error.details.requestId
+      ? ` (ID transaksi ${error.details.requestId})`
+      : '';
+
+    if (error.isTransportFailure) {
+      return new GatewayTimeoutException(
+        `${error.message}. Hasil penandatanganan belum pasti; klik Tandatangani lagi untuk memeriksa ulang dengan operasi yang sama.`,
+      );
+    }
+    switch (error.httpStatus) {
+      case 422:
+        return new UnprocessableEntityException(error.message);
+      case 409:
+        return new ConflictException(
+          `${error.message}${ref}. Operasi ini sudah tercatat di gateway TTE; hubungi admin gateway sebelum menandatangani ulang.`,
+        );
+      case 401:
+      case 403:
+        return new BadGatewayException(
+          `Akses SIPATUH ke gateway TTE ditolak: ${error.message}. Hubungi admin gateway TTE.`,
+        );
+      case 429:
+        return new ServiceUnavailableException(
+          `Batas pemakaian gateway TTE tercapai: ${error.message}${
+            error.details.retryAfterSeconds
+              ? ` Coba lagi dalam ${error.details.retryAfterSeconds} detik.`
+              : ''
+          }`,
+        );
+      default:
+        return new BadGatewayException(`${error.message}${ref}`);
+    }
+  }
+
+  /** Draft tidak boleh berubah selama transaksi TTE belum tuntas. */
+  private assertNoPendingTte(sp: Pick<SuratPeringatan, 'tte_status'>) {
+    if (sp.tte_status === 'sending' || sp.tte_status === 'unknown') {
+      throw new ConflictException(
+        'Penandatanganan TTE untuk surat ini belum tuntas. Selesaikan atau periksa status TTE terlebih dahulu sebelum mengubah surat.',
+      );
     }
   }
 

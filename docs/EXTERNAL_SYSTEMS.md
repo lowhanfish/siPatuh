@@ -49,29 +49,24 @@ Dokumen ini memetakan seluruh sistem eksternal yang terhubung dengan SIPATUH, me
 
 ---
 
-## 3. Layanan TTE Wrapper (`tte_api`)
+## 3. API Gateway TTE Esign Konsel (BSrE Kab. Konawe Selatan)
 * **Kategori**: Layanan REST API Eksternal (Server-to-Server).
-* **Repositori Acuan**: `https://github.com/lowhanfish/tte_api`
+* **Base URL**: `https://esignkonsel.konaweselatankab.go.id` (`TTE_GATEWAY_URL`). Panduan di `/admin/guide`, Swagger di `/docs`.
+* **Implementasi**: `backend/src/external/tte/tte.client.ts`. Menggantikan kontrak wrapper lama (`tte_api`, JSON base64 + `TOKEN`).
 
-### 3.1 Fakta Terverifikasi dari Kode Wrapper
-* Wrapper dibangun dengan Node.js / Express.
-* Menghubungkan aplikasi dengan endpoint eSign Pemerintah Kabupaten Konawe Selatan (BSrE).
-* **Kontrak JSON Request**:
-  * `TOKEN`: Token autentikasi rahasia wrapper (disimpan di backend SIPATUH via `TTE_API_TOKEN`).
-  * `nik`: NIK pemilik sertifikat elektronik.
-  * `passphrase`: Kata sandi kunci privat sertifikat elektronik.
-  * `tagTTDX`: String penanda/anchor koordinat visual tanda tangan pada dokumen PDF.
-  * `filebase64`: Berkas PDF dalam format base64.
-  * `judul`: String judul surat (dikirim untuk kompatibilitas wrapper).
-  * `nomor`: String nomor surat (dikirim untuk kompatibilitas wrapper).
-* **Format Response Sukses**:
-  ```json
-  {
-    "status": 200,
-    "filename": "...pdf",
-    "base64": "data:application/pdf;base64,..."
-  }
-  ```
-* **Aturan Keamanan SIPATUH**:
-  * Dilarang mencatat `TOKEN`, `passphrase`, `nik` penuh, atau data `filebase64` ke dalam log, database, maupun error tracking.
-  * Backend SIPATUH wajib men-decode base64 dan menyimpan file PDF signed secara terproteksi di `backend/uploads/surat-peringatan/signed/`.
+### 3.1 Kontrak (dari panduan gateway, dibaca 23 November 2026)
+* **Autentikasi**: OAuth2 `client_credentials`. `POST /oauth/token` dengan Basic Auth `TTE_CLIENT_ID` (`konsel_...`) / `TTE_CLIENT_SECRET` (`sign_...`), body `application/x-www-form-urlencoded` (`grant_type`, `scope`). Access token `tte_...` berlaku maks 900 detik, tanpa refresh token. SIPATUH meng-cache token sampai 30 detik sebelum `expires_in`.
+* **Scope**: `gateway:read`, `sign:create`, `sign:read`, `document:download` (`TTE_SCOPE`).
+* **Pembatasan opsional**: IP keluar server dan header `Origin` (`TTE_ORIGIN`) bila admin gateway membatasi URL aplikasi.
+* **Signing**: `POST /api/v1/signkonsel`, `multipart/form-data` dengan tepat 4 field: `file` (PDF, maks 25 MiB), `nik` (16 digit teks), `passphrase` (maks 256), `tag_koordinat` (tepat 1 karakter, SIPATUH memakai `TTE_SIGNATURE_TAG=$`). Header wajib `Idempotency-Key` (8–128 karakter `[A-Za-z0-9._:-]`).
+  * Sukses: HTTP 200, body PDF biner, header `X-Signing-Request-ID`.
+  * Gagal: JSON `{ message, request_id?, status?, code?, retry_signing? }`. Contoh kode: `signer_certificate_invalid` (TTE 2021), `signer_passphrase_invalid` (TTE 2031).
+* **Status**: `GET /api/v1/signkonsel/{request_id}` → `sending | succeeded | failed | unknown`.
+* **Unduh ulang**: `GET /api/v1/signkonsel/{request_id}/document`. Retensi 24 jam setelah sukses, lalu HTTP 410.
+
+### 3.2 Aturan SIPATUH
+* Marker `TTE_SIGNATURE_TAG` dicetak sekali di blok tanda tangan PDF; draft ditolak bila karakter yang sama muncul di isi surat. Untuk penanda tangan lebih dari satu, gunakan marker berbeda per penanda tangan dan tanda tangani berurutan.
+* Idempotency-Key disimpan di `SuratPeringatan.tte_idempotency_key` sebelum request dikirim. Timeout / 5xx / 409 / status `unknown` mempertahankan key; percobaan berikutnya memeriksa status (jika ada `tte_request_id`) atau mengirim ulang dengan key dan isi yang sama. Status `failed` membuang key sehingga percobaan berikutnya memakai key baru.
+* Draft surat tidak boleh diubah, dibuat ulang, atau dihapus selama `tte_status` bernilai `sending` atau `unknown`.
+* Dilarang mencatat client secret, access token, `passphrase`, `nik` penuh, atau isi PDF ke log, database, maupun error tracking.
+* PDF signed disimpan di `backend/uploads/surat-peringatan/signed/`.

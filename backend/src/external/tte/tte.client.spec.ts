@@ -1,168 +1,259 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, BadGatewayException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { TteClient } from './tte.client';
+import { TteClient, TteConfigError, TteGatewayError } from './tte.client';
 
-describe('TteClient', () => {
-  let client: TteClient;
+const BASE_URL = 'https://esign.example.test';
 
-  const mockConfigService = {
-    get: jest.fn((key: string) => {
-      switch (key) {
-        case 'TTE_API_URL':
-          return 'https://esign.konselkab.go.id/api/sign';
-        case 'TTE_API_TOKEN':
-          return 'mock-secret-tte-token';
-        case 'TTE_REQUEST_TIMEOUT_MS':
-          return 5000;
-        case 'TTE_MAX_PDF_BYTES':
-          return 7000000;
-        case 'TTE_SIGNATURE_TAG':
-          return '#tagTTD#';
-        default:
-          return null;
-      }
-    }),
+function makeConfig(overrides: Record<string, unknown> = {}): ConfigService {
+  const values: Record<string, unknown> = {
+    TTE_GATEWAY_URL: `${BASE_URL}/`,
+    TTE_CLIENT_ID: 'konsel_test_client',
+    TTE_CLIENT_SECRET: 'sign_test_secret',
+    TTE_SCOPE: 'gateway:read sign:create sign:read document:download',
+    TTE_ORIGIN: 'https://sipatuh.example.test',
+    TTE_REQUEST_TIMEOUT_MS: 5000,
+    TTE_MAX_PDF_BYTES: 1024 * 1024,
+    TTE_SIGNATURE_TAG: '$',
+    ...overrides,
   };
+  return { get: (key: string) => values[key] } as unknown as ConfigService;
+}
 
-  const samplePdfBuffer = Buffer.from('%PDF-1.4 sample content for testing');
+const signedPdf = Buffer.from('%PDF-1.7 signed by BSrE ' + '0'.repeat(200));
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TteClient,
-        { provide: ConfigService, useValue: mockConfigService },
-      ],
-    }).compile();
+function tokenResponse(token = 'tte_access_1', expiresIn = 900) {
+  return new Response(
+    JSON.stringify({
+      access_token: token,
+      token_type: 'Bearer',
+      expires_in: expiresIn,
+      scope: 'sign:create',
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  );
+}
 
-    client = module.get<TteClient>(TteClient);
-    jest.clearAllMocks();
+function pdfResponse(requestId = 'req-1') {
+  return new Response(new Uint8Array(signedPdf), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/pdf',
+      'X-Signing-Request-ID': requestId,
+      'Content-Disposition': 'attachment; filename="hasil-ttd.pdf"',
+    },
+  });
+}
+
+function jsonResponse(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+const basePayload = {
+  nomor: '700/01/SP1/2026',
+  nik: '7405010101900001',
+  passphrase: 'rahasia-uji',
+  idempotencyKey: '3f1c2b9e-1111-4222-8333-444455556666',
+  pdfBuffer: Buffer.from('%PDF-1.4 draft'),
+};
+
+describe('TteClient (API Gateway Esign Konsel)', () => {
+  let fetchSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    fetchSpy = jest.spyOn(global, 'fetch');
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  it('should be defined and return isConfigured true', () => {
-    expect(client).toBeDefined();
-    expect(client.isConfigured()).toBe(true);
+  const callAt = (i: number) =>
+    fetchSpy.mock.calls[i] as unknown as [string, RequestInit];
+
+  it('reports configuration state', () => {
+    expect(new TteClient(makeConfig()).isConfigured()).toBe(true);
+    expect(
+      new TteClient(makeConfig({ TTE_CLIENT_SECRET: '' })).isConfigured(),
+    ).toBe(false);
   });
 
-  it('should throw BadRequestException if TTE_API_URL or TTE_API_TOKEN is missing', async () => {
-    mockConfigService.get.mockReturnValueOnce(null); // missing URL
-    const unconfiguredClient = new TteClient(
-      mockConfigService as unknown as ConfigService,
-    );
+  it('throws TteConfigError without sending anything when not configured', async () => {
+    const client = new TteClient(makeConfig({ TTE_GATEWAY_URL: undefined }));
+    await expect(client.signPdf(basePayload)).rejects.toThrow(TteConfigError);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 
+  it.each([
+    ['tag lebih dari 1 karakter', { tag: '#tagTTD#' }],
+    ['NIK bukan 16 digit', { nik: '12345' }],
+    ['Idempotency-Key terlalu pendek', { idempotencyKey: 'abc' }],
+    ['PDF melebihi batas', { pdfBuffer: Buffer.alloc(2 * 1024 * 1024) }],
+  ])('rejects locally when %s', async (_label, override) => {
+    const client = new TteClient(makeConfig());
     await expect(
-      unconfiguredClient.signPdf({
-        judul: 'SP1',
-        nomor: '700/01/2026',
-        nik: '7405010101900001',
-        passphrase: 'secretpassphrase',
-        pdfBuffer: samplePdfBuffer,
-      }),
-    ).rejects.toThrow(BadRequestException);
+      client.signPdf({ ...basePayload, ...override }),
+    ).rejects.toThrow(TteConfigError);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('should throw BadRequestException if PDF size exceeds TTE_MAX_PDF_BYTES', async () => {
-    const hugeBuffer = Buffer.alloc(8 * 1024 * 1024); // 8 MB > 7 MB
+  it('obtains a token, then sends exactly the four multipart fields', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(tokenResponse())
+      .mockResolvedValueOnce(pdfResponse('req-123'));
+    const client = new TteClient(makeConfig());
 
-    await expect(
-      client.signPdf({
-        judul: 'SP1',
-        nomor: '700/01/2026',
-        nik: '7405010101900001',
-        passphrase: 'secretpassphrase',
-        pdfBuffer: hugeBuffer,
-      }),
-    ).rejects.toThrow(BadRequestException);
+    const result = await client.signPdf(basePayload);
+
+    expect(result.requestId).toBe('req-123');
+    expect(result.filename).toBe('hasil-ttd.pdf');
+    expect(result.signedPdfBuffer.equals(signedPdf)).toBe(true);
+
+    const [tokenUrl, tokenInit] = callAt(0);
+    expect(tokenUrl).toBe(`${BASE_URL}/oauth/token`);
+    const tokenHeaders = tokenInit.headers as Record<string, string>;
+    expect(tokenHeaders.Authorization).toBe(
+      `Basic ${Buffer.from('konsel_test_client:sign_test_secret').toString('base64')}`,
+    );
+    const tokenBody = new URLSearchParams(tokenInit.body as string);
+    expect(tokenBody.get('grant_type')).toBe('client_credentials');
+    expect(tokenBody.get('scope')).toBe(
+      'gateway:read sign:create sign:read document:download',
+    );
+    // Secret hanya di header Basic, tidak di body.
+    expect(tokenInit.body as string).not.toContain('sign_test_secret');
+
+    const [signUrl, signInit] = callAt(1);
+    expect(signUrl).toBe(`${BASE_URL}/api/v1/signkonsel`);
+    const headers = signInit.headers as Headers;
+    expect(headers.get('Authorization')).toBe('Bearer tte_access_1');
+    expect(headers.get('Idempotency-Key')).toBe(basePayload.idempotencyKey);
+    expect(headers.get('Origin')).toBe('https://sipatuh.example.test');
+
+    const form = signInit.body as FormData;
+    expect([...form.keys()].sort()).toEqual(
+      ['file', 'nik', 'passphrase', 'tag_koordinat'].sort(),
+    );
+    expect(form.get('nik')).toBe('7405010101900001');
+    expect(form.get('tag_koordinat')).toBe('$');
+    expect((form.get('file') as Blob).type).toBe('application/pdf');
   });
 
-  it('should successfully sign and return decoded PDF buffer on valid wrapper response', async () => {
-    const validSignedPdf = Buffer.from(
-      '%PDF-1.4 signed by BSrE ' + '0'.repeat(120),
+  it('caches the access token across requests', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(tokenResponse())
+      .mockResolvedValueOnce(pdfResponse('req-a'))
+      .mockResolvedValueOnce(
+        jsonResponse(200, { id: 'req-a', status: 'succeeded' }),
+      );
+    const client = new TteClient(makeConfig());
+
+    await client.signPdf(basePayload);
+    const status = await client.getStatus('req-a');
+
+    expect(status.status).toBe('succeeded');
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    expect(callAt(2)[0]).toBe(`${BASE_URL}/api/v1/signkonsel/req-a`);
+  });
+
+  it('refreshes the token once when the gateway answers 401', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(tokenResponse('tte_old'))
+      .mockResolvedValueOnce(
+        jsonResponse(401, { message: 'Token kedaluwarsa' }),
+      )
+      .mockResolvedValueOnce(tokenResponse('tte_new'))
+      .mockResolvedValueOnce(pdfResponse('req-2'));
+    const client = new TteClient(makeConfig());
+
+    const result = await client.signPdf(basePayload);
+
+    expect(result.requestId).toBe('req-2');
+    const retryHeaders = callAt(3)[1].headers as Headers;
+    expect(retryHeaders.get('Authorization')).toBe('Bearer tte_new');
+    expect(retryHeaders.get('Idempotency-Key')).toBe(
+      basePayload.idempotencyKey,
     );
-    const mockWrapperResponse = {
-      status: 200,
-      filename: 'signed_SP1.pdf',
-      base64: `data:application/pdf;base64,${validSignedPdf.toString('base64')}`,
-    };
+  });
 
-    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: jest.fn().mockResolvedValueOnce(mockWrapperResponse),
-    } as unknown as Response);
-
-    const result = await client.signPdf({
-      judul: 'Surat Peringatan 1',
-      nomor: '700/01/SP1/2026',
-      nik: '7405010101900001',
-      passphrase: 'mypassphrase123',
-      pdfBuffer: samplePdfBuffer,
-    });
-
-    expect(result).toBeDefined();
-    expect(result.filename).toBe('signed_SP1.pdf');
-    expect(result.signedPdfBuffer.toString()).toContain(
-      '%PDF-1.4 signed by BSrE',
+  it('maps a JSON signing error into TteGatewayError with metadata', async () => {
+    fetchSpy.mockResolvedValueOnce(tokenResponse()).mockResolvedValueOnce(
+      jsonResponse(422, {
+        message: 'Passphrase penandatangan tidak valid.',
+        request_id: 'req-err',
+        status: 'failed',
+        code: 'signer_passphrase_invalid',
+        retry_signing: false,
+      }),
     );
+    const client = new TteClient(makeConfig());
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      'https://esign.konselkab.go.id/api/sign',
+    const error = (await client
+      .signPdf(basePayload)
+      .catch((e: unknown) => e)) as TteGatewayError;
+
+    expect(error).toBeInstanceOf(TteGatewayError);
+    expect(error.httpStatus).toBe(422);
+    expect(error.message).toBe('Passphrase penandatangan tidak valid.');
+    expect(error.details).toEqual(
       expect.objectContaining({
-        method: 'POST',
+        code: 'signer_passphrase_invalid',
+        requestId: 'req-err',
+        txStatus: 'failed',
+        retrySigning: false,
       }),
     );
-
-    // Verify request payload
-    const callArgs = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
-    const callInit = callArgs[1];
-    const sentBody = JSON.parse(callInit.body as string) as Record<
-      string,
-      unknown
-    >;
-    expect(sentBody['nomor']).toBe('700/01/SP1/2026');
-    expect(sentBody['TOKEN']).toBe('mock-secret-tte-token');
-    expect(sentBody['tagTTDX']).toBe('#tagTTD#');
-    expect(sentBody['filebase64']).toContain('data:application/pdf;base64,');
   });
 
-  it('should throw BadRequestException if wrapper returns error status like invalid passphrase', async () => {
-    jest.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: jest.fn().mockResolvedValueOnce({
-        status: 400,
-        message: 'Passphrase atau NIK tidak valid',
-      }),
-    } as unknown as Response);
+  it('marks network failures as transport failures (result uncertain)', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(tokenResponse())
+      .mockRejectedValueOnce(new Error('socket hang up'));
+    const client = new TteClient(makeConfig());
 
-    await expect(
-      client.signPdf({
-        judul: 'SP1',
-        nomor: '700/01/2026',
-        nik: '7405010101900001',
-        passphrase: 'wrongpassphrase',
-        pdfBuffer: samplePdfBuffer,
-      }),
-    ).rejects.toThrow(BadRequestException);
+    const error = (await client
+      .signPdf(basePayload)
+      .catch((e: unknown) => e)) as TteGatewayError;
+
+    expect(error).toBeInstanceOf(TteGatewayError);
+    expect(error.isTransportFailure).toBe(true);
   });
 
-  it('should throw BadGatewayException if network error occurs', async () => {
-    jest
-      .spyOn(global, 'fetch')
-      .mockRejectedValueOnce(new Error('Connection refused'));
-
-    await expect(
-      client.signPdf({
-        judul: 'SP1',
-        nomor: '700/01/2026',
-        nik: '7405010101900001',
-        passphrase: 'mypassphrase',
-        pdfBuffer: samplePdfBuffer,
+  it('surfaces token endpoint errors', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      jsonResponse(401, {
+        error: 'invalid_client',
+        error_description: 'Kredensial tidak valid',
       }),
-    ).rejects.toThrow(BadGatewayException);
+    );
+    const client = new TteClient(makeConfig());
+
+    const error = (await client
+      .signPdf(basePayload)
+      .catch((e: unknown) => e)) as TteGatewayError;
+
+    expect(error.httpStatus).toBe(401);
+    expect(error.details.code).toBe('invalid_client');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('downloads a stored document and reports 410 after retention', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(tokenResponse())
+      .mockResolvedValueOnce(pdfResponse('req-d'))
+      .mockResolvedValueOnce(
+        jsonResponse(410, { message: 'Masa simpan PDF berakhir' }),
+      );
+    const client = new TteClient(makeConfig());
+
+    const pdf = await client.downloadDocument('req-d');
+    expect(pdf.equals(signedPdf)).toBe(true);
+    expect(callAt(1)[0]).toBe(`${BASE_URL}/api/v1/signkonsel/req-d/document`);
+
+    const error = (await client
+      .downloadDocument('req-d')
+      .catch((e: unknown) => e)) as TteGatewayError;
+    expect(error.httpStatus).toBe(410);
   });
 });

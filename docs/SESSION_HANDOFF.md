@@ -377,7 +377,7 @@ All Checkpoints Completed: F01 - F14 (Frontend & Backend Production Ready)
 - Hard delete LHP dilarang jika sudah memiliki surat peringatan bertandatangan digital (TTE).
 - 100% pelunasan finansial pada tindak lanjut tidak mengubah status rekomendasi menjadi "Selesai/Sesuai" secara otomatis. Penentuan status sepenuhnya wewenang verifikator manusia (inspektur).
 - Kalkulasi SP Due engine strictly menggunakan `tanggal_diterima_lhp` dalam hari kalender murni.
-- Anchor TTE disuntikkan secara dinamis ke dalam dokumen PDF menggunakan variabel konfigurasi `TTE_SIGNATURE_TAG` (`#tagTTD#`), menjamin konsistensi saat proses penandatanganan elektronik.
+- Anchor TTE disuntikkan secara dinamis ke dalam dokumen PDF menggunakan variabel konfigurasi `TTE_SIGNATURE_TAG` (1 karakter, default `$`, sesuai syarat `tag_koordinat` gateway Esign Konsel), menjamin konsistensi saat proses penandatanganan elektronik.
 - In-memory lock `Set<string>` digunakan pada penandatanganan TTE untuk menangkal race condition akibat klik ganda pengguna.
 - Surat peringatan yang telah bertandatangan TTE berstatus *immutable*: regenerasi draft, edit metadata, atau hapus diblokir permanen.
 - Laporan CSV Excel menggunakan prefix `\uFEFF` (UTF-8 BOM) sehingga file langsung terbuka dengan rapi dan format karakter tepat di MS Excel tanpa konfigurasi delimiter manual.

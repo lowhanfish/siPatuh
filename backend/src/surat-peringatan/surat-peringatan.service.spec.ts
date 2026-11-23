@@ -3,6 +3,8 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  GatewayTimeoutException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import {
   KategoriStatusEnum,
@@ -20,7 +22,7 @@ import { FilesService } from '../files/files.service';
 import { SpDueEngineService } from './sp-due.service';
 import fs from 'fs';
 import { SpPdfGeneratorService } from './sp-pdf.service';
-import { TteClient } from '../external/tte/tte.client';
+import { TteClient, TteGatewayError } from '../external/tte/tte.client';
 import type { AuthenticatedUser } from '../auth/interfaces/jwt-payload.interface';
 
 describe('SuratPeringatanService', () => {
@@ -64,6 +66,7 @@ describe('SuratPeringatanService', () => {
       findMany: jest.Mock;
       create: jest.Mock;
       update: jest.Mock;
+      updateMany: jest.Mock;
       delete: jest.Mock;
     };
     suratPeringatanItem: {
@@ -90,6 +93,7 @@ describe('SuratPeringatanService', () => {
       findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
       delete: jest.fn(),
     },
     suratPeringatanItem: {
@@ -134,10 +138,9 @@ describe('SuratPeringatanService', () => {
   };
 
   const mockTteClient = {
-    signPdf: jest.fn().mockResolvedValue({
-      filename: 'signed_test.pdf',
-      signedPdfBuffer: Buffer.from('%PDF-1.4 signed test by BSrE'),
-    }),
+    signPdf: jest.fn(),
+    getStatus: jest.fn(),
+    downloadDocument: jest.fn(),
     isConfigured: jest.fn().mockReturnValue(true),
   };
 
@@ -422,6 +425,11 @@ describe('SuratPeringatanService', () => {
       draft_path: 'surat-peringatan/draft/draft.pdf',
       signed_at: null,
       signed_path: null,
+      tte_idempotency_key: null,
+      tte_request_id: null,
+      tte_status: null,
+      tte_error_code: null,
+      tte_attempted_at: null,
       lhp: { irban_id: 'irban-1' },
       items: [],
     };
@@ -431,55 +439,81 @@ describe('SuratPeringatanService', () => {
       passphrase: 'securepassphrase',
     };
 
-    it('should successfully sign SP via TteClient and update database', async () => {
-      mockPrisma.suratPeringatan.findUnique.mockResolvedValueOnce(mockDraftSp);
-      // Mock regenerateDraft in case file read is needed
-      jest
-        .spyOn(service, 'regenerateDraft')
-        .mockResolvedValueOnce(
-          mockDraftSp as unknown as Awaited<
-            ReturnType<typeof service.regenerateDraft>
-          >,
-        );
+    const signedPdf = Buffer.from('%PDF-1.4 signed test by BSrE');
 
-      const mockSignedResult = {
-        id: 'sp-draft-1',
-        nomor_surat: '700/01/SP1/2026',
-        level: SpLevelEnum.SP1,
-        signed_at: new Date(),
-        signed_path: 'surat-peringatan/signed/test.pdf',
-        lhp: { irban_id: 'irban-1' },
-        items: [],
-      };
-
-      mockPrisma.suratPeringatan.update.mockResolvedValueOnce(mockSignedResult);
-      mockSimpegAdapter.findUnitKerjaById.mockResolvedValueOnce({
-        unit_kerja: 'Dinas Sosial',
-      });
-
-      // Mock fs methods
+    beforeEach(() => {
       jest.spyOn(fs, 'existsSync').mockReturnValue(true);
       jest
         .spyOn(fs, 'readFileSync')
         .mockReturnValue(Buffer.from('%PDF-1.4 draft'));
       jest.spyOn(fs, 'writeFileSync').mockReturnValue(undefined);
+      jest.spyOn(fs, 'mkdirSync').mockReturnValue(undefined);
+      mockPrisma.suratPeringatan.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.suratPeringatan.update.mockImplementation(
+        (args: { data: Record<string, unknown> }) =>
+          Promise.resolve({ ...mockDraftSp, ...args.data }),
+      );
+      mockSimpegAdapter.findUnitKerjaById.mockResolvedValue({
+        unit_kerja: 'Dinas Sosial',
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+      mockTteClient.signPdf.mockReset();
+      mockTteClient.getStatus.mockReset();
+      mockTteClient.downloadDocument.mockReset();
+      mockPrisma.suratPeringatan.update.mockReset();
+      mockPrisma.suratPeringatan.updateMany.mockReset();
+    });
+
+    const lastUpdateData = () =>
+      (
+        mockPrisma.suratPeringatan.update.mock.calls.at(-1) as [
+          { data: Record<string, unknown> },
+        ]
+      )[0].data;
+
+    it('claims the operation with an Idempotency-Key before calling the gateway, then stores the result', async () => {
+      mockPrisma.suratPeringatan.findUnique.mockResolvedValueOnce(mockDraftSp);
+      mockTteClient.signPdf.mockResolvedValueOnce({
+        requestId: 'req-ok',
+        filename: 'hasil.pdf',
+        signedPdfBuffer: signedPdf,
+      });
 
       const res = await service.signTte('sp-draft-1', signDto, adminIrban1);
 
-      expect(res).toBeDefined();
       expect(res.status).toBe('SIGNED');
+      const claim = (
+        mockPrisma.suratPeringatan.updateMany.mock.calls[0] as [
+          { data: Record<string, unknown> },
+        ]
+      )[0];
+      expect(claim.data.tte_status).toBe('sending');
+      const key = claim.data.tte_idempotency_key as string;
+      expect(key).toMatch(/^[A-Za-z0-9._:-]{8,128}$/);
+
       expect(mockTteClient.signPdf).toHaveBeenCalledWith(
         expect.objectContaining({
-          nomor: '700/01/SP1/2026',
           nik: '7405010101900001',
           passphrase: 'securepassphrase',
+          idempotencyKey: key,
+        }),
+      );
+      expect(
+        mockPrisma.suratPeringatan.updateMany.mock.invocationCallOrder[0],
+      ).toBeLessThan(mockTteClient.signPdf.mock.invocationCallOrder[0]);
+
+      expect(lastUpdateData()).toEqual(
+        expect.objectContaining({
+          tte_status: 'succeeded',
+          tte_request_id: 'req-ok',
+          signed_by: adminIrban1.id,
         }),
       );
       expect(mockAuditService.log).toHaveBeenCalledWith(
-        expect.objectContaining({
-          action: 'TTE_SIGN_SUCCESS',
-          entity: 'SuratPeringatan',
-        }),
+        expect.objectContaining({ action: 'TTE_SIGN_SUCCESS' }),
       );
     });
 
@@ -502,34 +536,125 @@ describe('SuratPeringatanService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('should log TTE_SIGN_FAILED and rethrow error if TteClient throws', async () => {
+    it('rejects when another request already holds the signing claim', async () => {
       mockPrisma.suratPeringatan.findUnique.mockResolvedValueOnce(mockDraftSp);
-      jest
-        .spyOn(service, 'regenerateDraft')
-        .mockResolvedValueOnce(
-          mockDraftSp as unknown as Awaited<
-            ReturnType<typeof service.regenerateDraft>
-          >,
-        );
+      mockPrisma.suratPeringatan.updateMany.mockResolvedValueOnce({ count: 0 });
 
-      jest.spyOn(fs, 'existsSync').mockReturnValue(true);
-      jest
-        .spyOn(fs, 'readFileSync')
-        .mockReturnValue(Buffer.from('%PDF-1.4 draft'));
+      await expect(
+        service.signTte('sp-draft-1', signDto, adminIrban1),
+      ).rejects.toThrow(ConflictException);
+      expect(mockTteClient.signPdf).not.toHaveBeenCalled();
+    });
 
+    it('maps a rejected passphrase to 422, marks failed and drops the key', async () => {
+      mockPrisma.suratPeringatan.findUnique.mockResolvedValueOnce(mockDraftSp);
       mockTteClient.signPdf.mockRejectedValueOnce(
-        new BadRequestException('Passphrase salah'),
+        new TteGatewayError('Passphrase penandatangan tidak valid.', 422, {
+          code: 'signer_passphrase_invalid',
+          requestId: 'req-fail',
+          txStatus: 'failed',
+          retrySigning: false,
+        }),
       );
 
       await expect(
         service.signTte('sp-draft-1', signDto, adminIrban1),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(UnprocessableEntityException);
 
-      expect(mockAuditService.log).toHaveBeenCalledWith(
+      expect(lastUpdateData()).toEqual(
         expect.objectContaining({
-          action: 'TTE_SIGN_FAILED',
+          tte_status: 'failed',
+          tte_idempotency_key: null,
+          tte_error_code: 'signer_passphrase_invalid',
         }),
       );
+      expect(mockAuditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'TTE_SIGN_FAILED' }),
+      );
+    });
+
+    it('keeps the key as unknown on timeout and reuses it on the next attempt', async () => {
+      mockPrisma.suratPeringatan.findUnique.mockResolvedValueOnce(mockDraftSp);
+      mockTteClient.signPdf.mockRejectedValueOnce(
+        new TteGatewayError('Gateway TTE tidak merespons', null),
+      );
+
+      await expect(
+        service.signTte('sp-draft-1', signDto, adminIrban1),
+      ).rejects.toThrow(GatewayTimeoutException);
+
+      const failure = lastUpdateData();
+      expect(failure.tte_status).toBe('unknown');
+      const key = failure.tte_idempotency_key as string;
+      expect(key).toBeTruthy();
+
+      // Percobaan berikutnya: key yang sama, tanpa key baru.
+      mockPrisma.suratPeringatan.findUnique.mockResolvedValueOnce({
+        ...mockDraftSp,
+        tte_status: 'unknown',
+        tte_idempotency_key: key,
+      });
+      mockTteClient.signPdf.mockResolvedValueOnce({
+        requestId: 'req-retry',
+        filename: null,
+        signedPdfBuffer: signedPdf,
+      });
+
+      await service.signTte('sp-draft-1', signDto, adminIrban1);
+
+      expect(mockTteClient.signPdf).toHaveBeenLastCalledWith(
+        expect.objectContaining({ idempotencyKey: key }),
+      );
+    });
+
+    it('resumes a succeeded transaction by downloading instead of signing again', async () => {
+      mockPrisma.suratPeringatan.findUnique.mockResolvedValueOnce({
+        ...mockDraftSp,
+        tte_status: 'unknown',
+        tte_request_id: 'req-prev',
+        tte_idempotency_key: 'key-prev-12345',
+      });
+      mockTteClient.getStatus.mockResolvedValueOnce({
+        id: 'req-prev',
+        status: 'succeeded',
+      });
+      mockTteClient.downloadDocument.mockResolvedValueOnce(signedPdf);
+
+      const res = await service.signTte('sp-draft-1', signDto, adminIrban1);
+
+      expect(res.status).toBe('SIGNED');
+      expect(mockTteClient.signPdf).not.toHaveBeenCalled();
+      expect(mockTteClient.downloadDocument).toHaveBeenCalledWith('req-prev');
+    });
+
+    it('does not sign again while the gateway still reports sending', async () => {
+      mockPrisma.suratPeringatan.findUnique.mockResolvedValueOnce({
+        ...mockDraftSp,
+        tte_status: 'sending',
+        tte_request_id: 'req-busy',
+      });
+      mockTteClient.getStatus.mockResolvedValueOnce({
+        id: 'req-busy',
+        status: 'sending',
+      });
+
+      await expect(
+        service.signTte('sp-draft-1', signDto, adminIrban1),
+      ).rejects.toThrow(ConflictException);
+      expect(mockTteClient.signPdf).not.toHaveBeenCalled();
+    });
+
+    it('blocks draft regeneration while a TTE transaction is pending', async () => {
+      mockPrisma.suratPeringatan.findUnique.mockResolvedValueOnce({
+        ...mockDraftSp,
+        tte_status: 'unknown',
+        items: [],
+        lhp: { irban_id: 'irban-1' },
+      });
+
+      await expect(
+        service.regenerateDraft('sp-draft-1', adminIrban1),
+      ).rejects.toThrow(ConflictException);
     });
   });
 });

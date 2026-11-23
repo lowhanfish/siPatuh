@@ -5,6 +5,8 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
+  MaxLength,
 } from 'class-validator';
 import { SpLevelEnum } from '@prisma/client';
 
@@ -86,9 +88,15 @@ export class QuerySuratPeringatanDto {
 export class SignSuratPeringatanDto {
   @IsString()
   @IsNotEmpty({ message: 'NIK penandatangan TTE wajib diisi' })
+  @Matches(/^\s*\d{16}\s*$/, {
+    message: 'NIK penandatangan harus terdiri dari 16 digit angka',
+  })
   nik!: string;
 
   @IsString()
   @IsNotEmpty({ message: 'Passphrase penandatangan TTE wajib diisi' })
+  @MaxLength(256, {
+    message: 'Passphrase penandatangan maksimal 256 karakter',
+  })
   passphrase!: string;
 }
