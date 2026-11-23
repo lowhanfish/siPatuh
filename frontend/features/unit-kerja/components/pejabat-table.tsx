@@ -73,14 +73,14 @@ export function PejabatTable({
           <div className="relative min-w-[240px]">
             <Building2
               aria-hidden
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
               size={14}
             />
             <select
               aria-label="Filter unit kerja pejabat"
               value={selectedUnitId}
               onChange={(e) => onUnitChange(e.target.value)}
-              className="form-input pl-9 py-1.5 text-xs font-semibold text-ink outline-none cursor-pointer"
+              className="form-input form-input-icon py-1.5 text-xs font-semibold text-ink outline-none cursor-pointer"
             >
               <option value="">Semua Unit Kerja</option>
               {units.map((u, idx) => (

@@ -171,7 +171,7 @@ export function UnitKerjaCombobox({
                 setSearchTerm(e.target.value);
                 if (!isOpen) setIsOpen(true);
               }}
-              className="form-input pl-10 pr-10 text-xs sm:text-sm font-medium w-full"
+              className="form-input form-input-icon form-input-icon-right text-xs sm:text-sm font-medium w-full"
             />
             {isLoading ? (
               <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-brand">

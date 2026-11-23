@@ -78,7 +78,7 @@ export function UnitMappingTable({
             placeholder="Cari nama Organisasi / Unit Kerja SIMPEG..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="form-input pl-10 text-xs sm:text-sm"
+            className="form-input form-input-icon text-xs sm:text-sm"
           />
         </div>
 

@@ -30,6 +30,9 @@ html[data-theme="light"] .admin-workspace {
 .admin-workspace .admin-content table td { font-size: .8125rem; line-height: 1.6; padding: 12px 16px; }
 .admin-workspace .admin-content .form-label { font-size: .8125rem; font-weight: 550; margin-bottom: 6px; }
 .admin-workspace .admin-content .form-input { font-size: .875rem; line-height: 1.5; padding: 10px 12px; min-height: 42px; }
+/* Jaga ruang untuk ikon di dalam input (lihat .form-input-icon di app/globals.css). */
+.admin-workspace .admin-content .form-input.form-input-icon { padding-left: 2.5rem; }
+.admin-workspace .admin-content .form-input.form-input-icon-right { padding-right: 2.5rem; }
 .admin-workspace .admin-content :is(section, article).bg-surface { border-radius: 18px; }
 .admin-workspace .admin-content .admin-metric {
   display: flex;

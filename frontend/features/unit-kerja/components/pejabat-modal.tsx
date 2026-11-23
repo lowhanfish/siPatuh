@@ -205,7 +205,7 @@ function PejabatModalContent({
                 id="pejabat-unit-kerja"
                 value={simpegUnitKerjaId}
                 onChange={(e) => setSimpegUnitKerjaId(e.target.value)}
-                className="form-input pl-10 text-xs sm:text-sm cursor-pointer"
+                className="form-input form-input-icon text-xs sm:text-sm cursor-pointer"
                 required
               >
                 <option value="">-- Pilih Unit Kerja --</option>
@@ -302,7 +302,7 @@ function PejabatModalContent({
                   type="date"
                   value={tanggalMulai}
                   onChange={(e) => setTanggalMulai(e.target.value)}
-                  className="form-input pl-10 text-xs sm:text-sm"
+                  className="form-input form-input-icon text-xs sm:text-sm"
                   required
                 />
               </div>
@@ -323,7 +323,7 @@ function PejabatModalContent({
                   type="date"
                   value={tanggalSelesai}
                   onChange={(e) => setTanggalSelesai(e.target.value)}
-                  className="form-input pl-10 text-xs sm:text-sm"
+                  className="form-input form-input-icon text-xs sm:text-sm"
                 />
               </div>
             </div>

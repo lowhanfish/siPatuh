@@ -77,7 +77,7 @@ export function UserListTable({
             onChange={(e) =>
               onFilterChange({ ...filters, search: e.target.value || undefined })
             }
-            className="form-input pl-10 text-xs sm:text-sm"
+            className="form-input form-input-icon text-xs sm:text-sm"
           />
         </div>
 

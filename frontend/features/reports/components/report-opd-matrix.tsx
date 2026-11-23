@@ -65,13 +65,13 @@ export function ReportOpdMatrix({ items }: ReportOpdMatrixProps) {
         </div>
 
         <div className="relative w-full sm:w-72">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari nama OPD..."
-            className="input pl-9 text-xs w-full"
+            className="input pl-10 text-xs w-full"
           />
         </div>
       </div>

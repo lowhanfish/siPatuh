@@ -164,7 +164,7 @@ export function ActivateUserModal({
                       placeholder="Ketik NIP, username, atau nama pegawai..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="form-input pl-10 text-xs sm:text-sm"
+                      className="form-input form-input-icon text-xs sm:text-sm"
                       autoFocus
                     />
                   </div>
@@ -324,7 +324,7 @@ export function ActivateUserModal({
                           setIrbanId(e.target.value);
                           setFormError(null);
                         }}
-                        className="form-input pl-10 text-xs sm:text-sm cursor-pointer"
+                        className="form-input form-input-icon text-xs sm:text-sm cursor-pointer"
                         required
                       >
                         <option value="">-- Pilih Wilayah Irban --</option>

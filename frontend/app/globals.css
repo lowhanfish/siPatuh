@@ -163,6 +163,20 @@ a:focus-visible {
   opacity: 0.65;
 }
 
+/*
+ * Input dengan ikon di dalamnya (mis. ikon Search di kiri).
+ * Utilitas Tailwind seperti pl-10 kalah oleh padding .form-input karena
+ * .form-input tidak berada di @layer, jadi jarak ikon diatur di sini.
+ * Ikon diletakkan di left-3.5 / right-3.5 dengan ukuran 14–16px.
+ */
+.form-input.form-input-icon {
+  padding-left: 2.5rem;
+}
+
+.form-input.form-input-icon-right {
+  padding-right: 2.5rem;
+}
+
 .hero-grid {
   background-color: #fffaf0;
   background-image:

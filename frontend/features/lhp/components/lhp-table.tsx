@@ -97,7 +97,7 @@ export function LhpTable({
               placeholder="Cari nomor LHP..."
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="form-input pl-9 py-1.5 text-xs sm:text-sm"
+              className="form-input form-input-icon py-1.5 text-xs sm:text-sm"
             />
           </div>
 

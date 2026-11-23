@@ -92,7 +92,7 @@ export function StatusRekomendasiTable({
             placeholder="Cari status rekomendasi..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="form-input pl-10 text-xs sm:text-sm"
+            className="form-input form-input-icon text-xs sm:text-sm"
           />
         </div>
 
