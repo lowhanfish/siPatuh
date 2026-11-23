@@ -14,6 +14,7 @@ import {
   Building2,
   ChevronRight,
   FileSearch,
+  House,
   LogOut,
   MailWarning,
   Menu,
@@ -120,6 +121,14 @@ function SidebarContent({ user, pathname }: { user: AuthUser; pathname: string }
       </nav>
 
       <div className="border-t border-white/10 p-4">
+        <Link
+          className="admin-nav-link group mb-3 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-stone-300 transition hover:bg-white/8 hover:text-white"
+          href="/"
+        >
+          <House aria-hidden className="shrink-0" size={18} strokeWidth={1.9} />
+          <span className="min-w-0 flex-1 truncate font-medium">Kembali ke Beranda</span>
+          <ChevronRight aria-hidden className="shrink-0 opacity-0 transition group-hover:opacity-70" size={15} />
+        </Link>
         <div className="admin-profile rounded-2xl bg-white/8 p-4 ring-1 ring-white/10">
           <p className="truncate text-sm font-semibold text-white">{user.nama}</p>
           <p className="mt-1 truncate text-xs text-stone-300">{roleLabels[user.role]}</p>

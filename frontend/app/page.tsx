@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   BarChart3,
+  BookOpen,
   CheckCircle2,
   FolderClock,
   ShieldCheck,
@@ -55,8 +56,7 @@ export default function Home() {
             </span>
           </Link>
           <nav aria-label="Navigasi utama" className="flex items-center gap-3 sm:gap-6">
-            <a className="landing-nav-link hidden text-xs font-medium md:block" href="#alur">Alur pengawasan</a>
-            <a className="landing-nav-link hidden text-xs font-medium md:block" href="#manfaat">Manfaat</a>
+            <Link aria-label="Panduan penggunaan" className="landing-nav-link landing-guide-link" href="/panduan"><BookOpen aria-hidden size={16} /><span>Panduan</span></Link>
             <ThemeToggle />
             <SessionActions />
           </nav>
@@ -88,7 +88,7 @@ export default function Home() {
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Link className="landing-primary" href="/login">Masuk ke SIPATUH <ArrowRight aria-hidden size={18} /></Link>
-              <a className="landing-secondary" href="#alur">Lihat alur sistem</a>
+              <Link className="landing-secondary" href="/panduan"><BookOpen aria-hidden size={18} /> Panduan penggunaan</Link>
             </div>
             <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-sm font-semibold text-ink/75">
               <span className="flex items-center gap-2"><CheckCircle2 className="text-brand" size={17} />Data terpusat</span>
@@ -185,7 +185,7 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <Image alt="Logo Kabupaten Konawe Selatan" className="h-12 w-auto" height={52} src="/brand/konawe-selatan.png" width={44} />
             <Image alt="Logo Inspektorat" className="h-12 w-auto" height={52} src="/brand/inspektorat.png" width={42} />
-            <div><p className="text-sm font-black text-ink">SIPATUH</p><p className="text-xs text-muted">Inspektorat Daerah Kabupaten Konawe Selatan</p></div>
+            <div><p className="text-sm font-black text-ink">SIPATUH</p><p className="text-xs text-muted">Inspektorat Daerah Kabupaten Konawe Selatan</p><Link className="landing-nav-link mt-1 inline-block text-xs font-semibold" href="/panduan">Panduan penggunaan</Link></div>
           </div>
           <Image alt="Konawe Selatan Setara" className="h-auto w-44 object-contain" height={58} src="/brand/konsel-setara.png" width={174} />
         </div>

@@ -1,0 +1,92 @@
+/* Public user guide. Colors come from the shared theme variables (dark default, light via data-theme). */
+.panduan-page { --panduan-soft: #ffffff08; --panduan-gold: #e8c48a; min-height: 100vh; background: radial-gradient(ellipse at 85% 0%, #2a3c4c66, transparent 50%), var(--canvas); color: var(--ink); }
+html[data-theme="light"] .panduan-page { --panduan-soft: #ffffff; --panduan-gold: #885e22; background: radial-gradient(ellipse at 85% 0%, #e7d4aa55, transparent 50%), var(--canvas); }
+.panduan-shell { width: 100%; max-width: 76rem; margin: 0 auto; padding-inline: 20px; }
+@media (min-width: 640px) { .panduan-shell { padding-inline: 32px; } }
+.panduan-page :is(a, button, summary):focus-visible { outline: 2px solid var(--panduan-gold); outline-offset: 3px; border-radius: 6px; }
+.panduan-skip { position: fixed; top: 8px; left: 12px; z-index: 100; padding: 12px 20px; background: #e8c48a; color: #080e17; transform: translateY(-150%); }
+.panduan-skip:focus { transform: translateY(0); }
+
+/* Header */
+.panduan-header { position: sticky; top: 0; z-index: 30; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 82%, transparent); backdrop-filter: blur(16px); }
+.panduan-header-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 72px; }
+.panduan-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.panduan-brand-mark { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; background: #fff; }
+.panduan-brand strong { display: block; font-size: 17px; font-weight: 800; letter-spacing: -.03em; }
+.panduan-brand span span { display: block; font-size: 11px; color: var(--muted); }
+.panduan-header-actions { display: flex; align-items: center; gap: 10px; }
+.panduan-back { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 8px; font-size: 12px; color: var(--muted); }
+.panduan-back:hover { color: var(--ink); }
+.panduan-login { display: inline-flex; align-items: center; min-height: 38px; padding: 0 14px; border-radius: 11px; font-size: 12px; font-weight: 700; color: #141923; background: #e8c48a; }
+.panduan-login:hover { background: #f6d9aa; }
+@media (max-width: 480px) { .panduan-back span { display: none; } .panduan-brand span span { display: none; } }
+
+/* Hero */
+.panduan-hero { padding: 56px 0 40px; border-bottom: 1px solid var(--line); }
+.panduan-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--panduan-gold); }
+.panduan-hero h1 { margin: 16px 0 0; font-size: clamp(2.4rem, 6vw, 4.5rem); font-weight: 560; line-height: 1.02; letter-spacing: -.055em; }
+.panduan-lead { max-width: 44rem; margin-top: 18px; font-size: 15px; line-height: 1.85; color: var(--muted); }
+.panduan-flow { display: flex; flex-wrap: wrap; gap: 8px; margin: 32px 0 0; padding: 0; list-style: none; }
+.panduan-flow a { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 14px 8px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panduan-soft); font-size: 13px; font-weight: 600; transition: border-color .2s, transform .2s; }
+.panduan-flow a:hover { border-color: var(--panduan-gold); transform: translateY(-1px); }
+.panduan-flow a span { font-size: 10px; font-weight: 800; letter-spacing: .1em; color: var(--panduan-gold); }
+
+/* Roles */
+.panduan-roles { padding-top: 56px; }
+.panduan-page h2 { font-size: clamp(1.6rem, 3.4vw, 2.4rem); font-weight: 600; line-height: 1.15; letter-spacing: -.04em; }
+.panduan-role-grid { display: grid; gap: 16px; margin-top: 24px; }
+@media (min-width: 768px) { .panduan-role-grid { grid-template-columns: repeat(3, 1fr); } }
+.panduan-role-card { padding: 24px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); }
+.panduan-role-card h3 { margin-top: 16px; font-size: 20px; font-weight: 700; letter-spacing: -.03em; }
+.panduan-role-scope { margin-top: 4px; font-size: 13px; color: var(--muted); }
+.panduan-role-card ul { margin: 16px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.7; }
+.panduan-role-card li::marker { color: var(--panduan-gold); }
+.panduan-role-badge { display: inline-flex; align-items: center; min-height: 26px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; border: 1px solid; }
+.panduan-role-badge[data-role="SUPER_ADMIN"] { color: #f0d39f; background: #e8c48a1a; border-color: #e8c48a55; }
+.panduan-role-badge[data-role="ADMIN_IRBAN"] { color: #9fd0f0; background: #6eb4e01a; border-color: #6eb4e055; }
+.panduan-role-badge[data-role="BUPATI"] { color: #a8e0c2; background: #5cc28d1a; border-color: #5cc28d55; }
+html[data-theme="light"] .panduan-role-badge[data-role="SUPER_ADMIN"] { color: #79511a; background: #f5ebda; border-color: #dfc79f; }
+html[data-theme="light"] .panduan-role-badge[data-role="ADMIN_IRBAN"] { color: #2d5585; background: #e8f0fa; border-color: #b9cfe8; }
+html[data-theme="light"] .panduan-role-badge[data-role="BUPATI"] { color: #176849; background: #e7f5ee; border-color: #b4dcc6; }
+
+/* Steps */
+.panduan-steps { padding-top: 24px; }
+.panduan-step { display: grid; gap: 28px; padding: 48px 0; border-bottom: 1px solid var(--line); scroll-margin-top: 80px; }
+@media (min-width: 1024px) { .panduan-step { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 48px; align-items: start; } .panduan-step-text { position: sticky; top: 96px; } }
+.panduan-step-number { font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--panduan-gold); }
+.panduan-step h2 { margin-top: 10px; }
+.panduan-step-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
+.panduan-step-meta code { padding: 3px 8px; border-radius: 8px; background: var(--panduan-soft); border: 1px solid var(--line); font-size: 11px; color: var(--muted); }
+.panduan-step-summary { margin-top: 16px; font-size: 15px; line-height: 1.8; color: var(--muted); }
+.panduan-instructions { counter-reset: langkah; margin: 20px 0 0; padding: 0; list-style: none; }
+.panduan-instructions li { counter-increment: langkah; position: relative; padding: 0 0 14px 40px; font-size: 14px; line-height: 1.7; }
+.panduan-instructions li::before { content: counter(langkah); position: absolute; left: 0; top: 0; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font-size: 12px; font-weight: 800; color: #141923; background: #e8c48a; }
+.panduan-note { display: flex; gap: 10px; margin-top: 12px; padding: 12px 14px; border-radius: 14px; font-size: 13px; line-height: 1.65; border: 1px solid var(--line); background: var(--panduan-soft); }
+.panduan-note svg { flex-shrink: 0; margin-top: 2px; color: var(--panduan-gold); }
+.panduan-note[data-tone="warning"] { border-color: #e8a04a55; background: #e8a04a12; }
+.panduan-note[data-tone="warning"] svg { color: #f0b060; }
+html[data-theme="light"] .panduan-note[data-tone="warning"] { border-color: #e9c99a; background: #fbf1df; }
+html[data-theme="light"] .panduan-note[data-tone="warning"] svg { color: #a2620f; }
+.panduan-step-media { display: grid; gap: 20px; min-width: 0; }
+.panduan-step-media figure { margin: 0; }
+.panduan-step-media a { display: block; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 18px 50px #0000002e; transition: border-color .2s, transform .2s; }
+html[data-theme="light"] .panduan-step-media a { box-shadow: 0 14px 40px #23344814; }
+.panduan-step-media a:hover { border-color: var(--panduan-gold); transform: translateY(-2px); }
+.panduan-step-media img { display: block; width: 100%; height: auto; }
+.panduan-step-media figcaption { margin-top: 10px; font-size: 12px; line-height: 1.6; color: var(--muted); }
+
+/* FAQ & CTA */
+.panduan-faq { padding-top: 64px; }
+.panduan-faq > div { display: grid; gap: 10px; margin-top: 24px; }
+.panduan-faq details { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.panduan-faq summary { cursor: pointer; padding: 16px 18px; font-size: 14px; font-weight: 600; list-style-position: inside; }
+.panduan-faq details p { padding: 0 18px 16px; font-size: 14px; line-height: 1.75; color: var(--muted); }
+.panduan-cta { display: grid; gap: 20px; align-items: center; margin: 64px 0; padding: 28px; border-radius: 24px; border: 1px solid #e8c48a55; background: linear-gradient(120deg, #e8c48a1f, #e8c48a08); }
+html[data-theme="light"] .panduan-cta { border-color: #dfc79f; background: linear-gradient(120deg, #f1e3ca, #fff9ed); }
+@media (min-width: 768px) { .panduan-cta { grid-template-columns: 1fr auto; padding: 40px; } }
+.panduan-cta p { margin-top: 8px; font-size: 14px; color: var(--muted); }
+.panduan-cta-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 24px; border-radius: 16px; font-size: 14px; font-weight: 700; color: #141923; background: #e8c48a; }
+.panduan-cta-button:hover { background: #f6d9aa; }
+.panduan-footer { border-top: 1px solid var(--line); }
+.panduan-footer .panduan-shell { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-block: 24px; font-size: 11px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .panduan-page * { transition: none !important; } }

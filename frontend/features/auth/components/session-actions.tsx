@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LayoutDashboard, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useLogout, useSession } from "@/features/auth/hooks/use-auth";
@@ -54,18 +55,22 @@ export function SessionActions() {
         <p className="text-xs text-muted">{roleLabels[session.data.role]}</p>
       </div>
       <Link
-        className="button-primary hidden min-h-10 px-4 py-2 sm:inline-flex"
+        aria-label="Buka aplikasi"
+        className="grid size-10 shrink-0 place-items-center rounded-xl border border-line bg-surface text-muted transition hover:border-brand hover:text-brand"
         href={getDefaultRouteForRole(session.data.role)}
+        title="Buka aplikasi"
       >
-        Buka aplikasi
+        <LayoutDashboard aria-hidden size={18} />
       </Link>
       <button
-        className="rounded-xl border border-line bg-surface px-3 py-2 text-sm font-semibold text-muted transition hover:border-brand hover:text-brand disabled:opacity-60"
+        aria-label={logoutMutation.isPending ? "Mengakhiri sesi" : "Keluar dari SIPATUH"}
+        className="grid size-10 shrink-0 place-items-center rounded-xl border border-line bg-surface text-muted transition hover:border-danger hover:text-danger disabled:opacity-60"
         disabled={logoutMutation.isPending}
         onClick={handleLogout}
+        title="Keluar"
         type="button"
       >
-        {logoutMutation.isPending ? "Keluar…" : "Keluar"}
+        <LogOut aria-hidden size={18} />
       </button>
     </div>
   );
