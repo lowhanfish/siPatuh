@@ -11,6 +11,7 @@ import {
   JwtPayload,
   AuthenticatedUser,
 } from './interfaces/jwt-payload.interface';
+import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from './auth-cookies';
 
 @Injectable()
 export class AuthService {
@@ -80,15 +81,15 @@ export class AuthService {
   }
 
   /**
-   * Mengatur cookie access_token dan refresh_token pada response Express.
+   * Mengatur cookie access token dan refresh token SIPATUH pada response Express.
    */
   setAuthCookies(
     res: Response,
     accessToken: string,
     refreshToken: string,
   ): void {
-    res.cookie('access_token', accessToken, this.getCookieOptions(false));
-    res.cookie('refresh_token', refreshToken, this.getCookieOptions(true));
+    res.cookie(ACCESS_TOKEN_COOKIE, accessToken, this.getCookieOptions(false));
+    res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, this.getCookieOptions(true));
   }
 
   /**
@@ -102,8 +103,8 @@ export class AuthService {
       sameSite: isProd ? 'strict' : 'lax',
       path: '/',
     };
-    res.clearCookie('access_token', clearOptions);
-    res.clearCookie('refresh_token', clearOptions);
+    res.clearCookie(ACCESS_TOKEN_COOKIE, clearOptions);
+    res.clearCookie(REFRESH_TOKEN_COOKIE, clearOptions);
   }
 
   /**

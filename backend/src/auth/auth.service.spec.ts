@@ -108,12 +108,12 @@ describe('AuthService', () => {
       expect(result.user.role).toBe(RoleEnum.ADMIN_IRBAN);
       expect(mockRes.cookie).toHaveBeenCalledTimes(2);
       expect(mockRes.cookie).toHaveBeenCalledWith(
-        'access_token',
+        'sipatuh_access_token',
         expect.any(String),
         expect.objectContaining({ httpOnly: true, path: '/' }),
       );
       expect(mockRes.cookie).toHaveBeenCalledWith(
-        'refresh_token',
+        'sipatuh_refresh_token',
         expect.any(String),
         expect.objectContaining({ httpOnly: true, path: '/' }),
       );
@@ -224,11 +224,11 @@ describe('AuthService', () => {
     it('should clear authentication cookies', () => {
       service.logout(mockRes as Response);
       expect(mockRes.clearCookie).toHaveBeenCalledWith(
-        'access_token',
+        'sipatuh_access_token',
         expect.any(Object),
       );
       expect(mockRes.clearCookie).toHaveBeenCalledWith(
-        'refresh_token',
+        'sipatuh_refresh_token',
         expect.any(Object),
       );
     });

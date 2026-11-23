@@ -14,6 +14,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { REFRESH_TOKEN_COOKIE } from './auth-cookies';
 
 @Controller('auth')
 export class AuthController {
@@ -41,7 +42,8 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const refreshToken = req.cookies?.refresh_token as string | undefined;
+    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE] as
+      string | undefined;
     const result = await this.authService.refresh(refreshToken, res);
     return {
       success: true,

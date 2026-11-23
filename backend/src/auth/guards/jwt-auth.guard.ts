@@ -11,6 +11,7 @@ import {
   AuthenticatedUser,
   JwtPayload,
 } from '../interfaces/jwt-payload.interface';
+import { ACCESS_TOKEN_COOKIE } from '../auth-cookies';
 
 // Extend Express Request interface to include authenticated user
 declare module 'express' {
@@ -56,9 +57,11 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   private extractTokenFromRequest(request: Request): string | undefined {
-    // 1. Ambil dari cookie access_token (prioritas utama httpOnly cookie)
-    if (request.cookies && request.cookies.access_token) {
-      return request.cookies.access_token as string;
+    // 1. Ambil dari cookie access token SIPATUH (prioritas utama httpOnly cookie)
+    const cookieToken = request.cookies?.[ACCESS_TOKEN_COOKIE] as
+      string | undefined;
+    if (cookieToken) {
+      return cookieToken;
     }
 
     // 2. Fallback ke header Authorization: Bearer <token>
